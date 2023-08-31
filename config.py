@@ -38,4 +38,8 @@ STANDARD_OUT_FILE_NAME = 'stdout.txt'  # Standard Output file
 
 SIM_CONFIG_FILE = "SimulationConfigFile.txt"
 OUTPUT_DIR_PATH = "./work/RunDir/run"
-OUTPUT_FILE_NAMES = ["file1", "file2"]
+OUTPUT_FILE_NAMES = ["DoseToCell_SARRP.csv",
+                     "DoseToNucleus_1p0mgml_5000_AuNP_electrons.csv",
+                     "DoseToNucleus_1p0mgml_5000_AuNP_gammas.csv",
+                     "nucleus_PHSP_1p0mgml_5000_AuNP_electrons.header",
+                     "nucleus_PHSP_1p0mgml_5000_AuNP_electrons.phsp"]

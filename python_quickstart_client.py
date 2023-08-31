@@ -252,7 +252,6 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, config_file
     """
 
     tasks = []
-
     COMMAND_TEMPLATE = (
         "docker exec {docker_image} /bin/bash -c '"
         "git pull origin master && "
@@ -274,7 +273,7 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, config_file
         # Define output file destinations for this specific task
         output_file_destinations = [
             OutputFile(
-                file_pattern=f"{config.OUTPUT_DIR_PATH}/{filename}",
+                file_pattern=f"{config.OUTPUT_DIR_PATH}{i}/{filename}",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
                         container_url=f"https://{config.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{container_name}",
