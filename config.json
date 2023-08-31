@@ -1,0 +1,15 @@
+{
+  "BATCH_ACCOUNT_NAME": "cuentaazurebatchhector",
+  "BATCH_ACCOUNT_KEY": "zZlg8xHGePKOmGUcpV/N2Pf/VofIlRQaSSglmAWjCXFsQ9g+zvuj5xjO8UeXQeicUOO//5EtSrAJ+ABa8Ylxsw==",
+  "BATCH_ACCOUNT_URL": "https://cuentaazurebatchhector.westeurope.batch.azure.com",
+  "STORAGE_ACCOUNT_NAME": "hmstoragebatch",
+  "STORAGE_ACCOUNT_KEY": "2w0dB19iO7mgHqy3AmUQUlYq+UiFjwAMr8Y0j1lO67ORFE2OfuDrewlfxtQRoA9skT/y7CbjhInx+AStnd4+Qg==",
+  "POOL_ID": "topas-pool",
+  "SIM_CONFIG_FILE": "SimulationConfigFile.txt",
+  "NTotalNodes": 2,
+  "DOCKER_IMAGE": "hectormiras/topascellsnp:latest",
+  "DOCKER_HUB_USERNAME": "hectormiras",
+  "OUTPUT_DIR_PATH": "./work/RunDir/run",
+  "OUTPUT_FILE_NAMES": ["file1", "file2"]
+}
+
