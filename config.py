@@ -30,7 +30,7 @@ STORAGE_ACCOUNT_DOMAIN = 'blob.core.windows.net' # Your storage account blob ser
 
 DOCKER_IMAGE = "hectormiras/topascellsnp:v1"
 
-POOL_ID = 'topas-pool'  # Your Pool ID
+POOL_ID = 'topas-pool1'  # Your Pool ID
 POOL_NODE_COUNT = 2  # Pool node count
 POOL_VM_SIZE = 'STANDARD_A1_v2'  # VM Type/Size
 JOB_ID = 'testjob'  # Job ID

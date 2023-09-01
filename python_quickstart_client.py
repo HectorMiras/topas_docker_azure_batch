@@ -35,7 +35,7 @@ import sys
 import time
 
 from azure.batch.models import OutputFile, OutputFileBlobContainerDestination, OutputFileUploadOptions, \
-    OutputFileUploadCondition, CloudTask, TaskContainerSettings, OutputFileDestination
+    OutputFileUploadCondition, CloudTask, TaskContainerSettings, OutputFileDestination, ResourceFile
 from azure.storage.blob import (
     BlobServiceClient,
     BlobSasPermissions,
@@ -239,6 +239,28 @@ def create_job(batch_service_client: BatchServiceClient, job_id: str, pool_id: s
 
     batch_service_client.job.add(job)
 
+def add_tasks_test(batch_service_client: BatchServiceClient, job_id: str, config_file: str, total_nodes: int):
+    """
+    Adds a task for each input file in the collection to the specified job.
+
+    :param config_file:
+    :param total_nodes:
+    :param batch_service_client: A Batch service client.
+    :param str job_id: The ID of the job to which to add the tasks.
+     created for each input file.
+    """
+
+    for i in range(1, total_nodes + 1):
+        # Construct the task command
+        task_command = "/bin/bash -c 'pwd && cd /topas/mytopassimulations && pwd && ls -la'"
+
+        # Define the task
+        cloud_task = CloudTask(
+            id=f"task-{i}",
+            command_line=task_command,
+            container_settings=TaskContainerSettings(image_name=config.DOCKER_IMAGE),
+        )
+        batch_client.task.add(job_id=JOB_ID, task=cloud_task)
 
 def add_tasks(batch_service_client: BatchServiceClient, job_id: str, config_file: str, total_nodes: int):
     """
@@ -253,27 +275,24 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, config_file
 
     tasks = []
     COMMAND_TEMPLATE = (
-        "docker exec {docker_image} /bin/bash -c '"
-        "git pull origin master && "
-        "az storage blob download --account-name {account_name} --container-name {container_name} "
-        "--name {config_file} --file ./{config_file} && "
+        "/bin/bash -c '"
+        "pwd && "
+        "cd /topas/mytopassimulations && "
+        "pwd && ls -la &&"
         "./main_run_simulation_docker.sh {node_number} {container_name}'"
     )
     container_name = job_id
     for i in range(1, total_nodes + 1):
         # Construct the task command
         task_command = COMMAND_TEMPLATE.format(
-            docker_image=config.DOCKER_IMAGE,
-            account_name=config.STORAGE_ACCOUNT_NAME,
             container_name=container_name,
-            config_file=config_file,
             node_number=i
         )
 
         # Define output file destinations for this specific task
         output_file_destinations = [
             OutputFile(
-                file_pattern=f"{config.OUTPUT_DIR_PATH}{i}/{filename}",
+                file_pattern=f"./work/{container_name}/run{i}/{filename}",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
                         container_url=f"https://{config.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{container_name}",
@@ -289,7 +308,9 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, config_file
             id=f"task-{i}",
             command_line=task_command,
             container_settings=TaskContainerSettings(image_name=config.DOCKER_IMAGE),
-            output_files=output_file_destinations
+            output_files=output_file_destinations,
+            resource_files=[ResourceFile(file_path=f'./{config_file}',
+                                         blob_source=f"https://{config.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{container_name}/{config_file}")]
         )
         batch_client.task.add(job_id=JOB_ID, task=cloud_task)
 
@@ -440,13 +461,13 @@ if __name__ == '__main__':
         add_tasks(batch_client, JOB_ID, config.SIM_CONFIG_FILE, config.POOL_NODE_COUNT)
 
         # Pause execution until tasks reach Completed state.
-        wait_for_tasks_to_complete(batch_client, config.JOB_ID, datetime.timedelta(minutes=30))
+        wait_for_tasks_to_complete(batch_client, JOB_ID, datetime.timedelta(minutes=30))
 
         print("  Success! All tasks reached the 'Completed' state within the "
               "specified timeout period.")
 
         # Print the stdout.txt and stderr.txt files for each task to the console
-        print_task_output(batch_client, config.JOB_ID)
+        print_task_output(batch_client, JOB_ID)
 
         # Print out some timing info
         end_time = datetime.datetime.now().replace(microsecond=0)
@@ -468,7 +489,7 @@ if __name__ == '__main__':
 
         # Clean up Batch resources (if the user so chooses).
         if query_yes_no('Delete job?') == 'yes':
-            batch_client.job.delete(config.JOB_ID)
+            batch_client.job.delete(JOB_ID)
 
         if query_yes_no('Delete pool?') == 'yes':
             batch_client.pool.delete(config.POOL_ID)
