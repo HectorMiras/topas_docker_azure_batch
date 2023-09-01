@@ -28,9 +28,9 @@ STORAGE_ACCOUNT_NAME = 'hmstoragebatch'
 STORAGE_ACCOUNT_KEY = '2w0dB19iO7mgHqy3AmUQUlYq+UiFjwAMr8Y0j1lO67ORFE2OfuDrewlfxtQRoA9skT/y7CbjhInx+AStnd4+Qg=='
 STORAGE_ACCOUNT_DOMAIN = 'blob.core.windows.net' # Your storage account blob service domain
 
-DOCKER_IMAGE = "hectormiras/topascellsnp:v1"
+DOCKER_IMAGE = "hectormiras/topascellsnp:v2"
 
-POOL_ID = 'topas-pool1'  # Your Pool ID
+POOL_ID = 'topas-pool'  # Your Pool ID
 POOL_NODE_COUNT = 2  # Pool node count
 POOL_VM_SIZE = 'STANDARD_A1_v2'  # VM Type/Size
 JOB_ID = 'testjob'  # Job ID
@@ -38,8 +38,4 @@ STANDARD_OUT_FILE_NAME = 'stdout.txt'  # Standard Output file
 
 SIM_CONFIG_FILE = "SimulationConfigFile.txt"
 OUTPUT_DIR_PATH = "./work/RunDir/run"
-OUTPUT_FILE_NAMES = ["DoseToCell_SARRP.csv",
-                     "DoseToNucleus_1p0mgml_5000_AuNP_electrons.csv",
-                     "DoseToNucleus_1p0mgml_5000_AuNP_gammas.csv",
-                     "nucleus_PHSP_1p0mgml_5000_AuNP_electrons.header",
-                     "nucleus_PHSP_1p0mgml_5000_AuNP_electrons.phsp"]
+OUTPUT_FILE_NAMES_EXTENSIONS = ["csv", "header", "phsp"]
