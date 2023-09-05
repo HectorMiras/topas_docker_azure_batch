@@ -18,24 +18,20 @@
 # is a better practice for Production usage.
 
 """
-Configure Batch and Storage Account credentials
+Simulation parameters
 """
 
-BATCH_ACCOUNT_NAME = 'cuentaazurebatchhector'  # Your batch account name
-BATCH_ACCOUNT_KEY = 'zZlg8xHGePKOmGUcpV/N2Pf/VofIlRQaSSglmAWjCXFsQ9g+zvuj5xjO8UeXQeicUOO//5EtSrAJ+ABa8Ylxsw=='  # Your batch account key
-BATCH_ACCOUNT_URL = 'https://cuentaazurebatchhector.westeurope.batch.azure.com'  # Your batch account URL
-STORAGE_ACCOUNT_NAME = 'hmstoragebatch'
-STORAGE_ACCOUNT_KEY = '2w0dB19iO7mgHqy3AmUQUlYq+UiFjwAMr8Y0j1lO67ORFE2OfuDrewlfxtQRoA9skT/y7CbjhInx+AStnd4+Qg=='
-STORAGE_ACCOUNT_DOMAIN = 'blob.core.windows.net' # Your storage account blob service domain
-
-DOCKER_IMAGE = "hectormiras/topascellsnp:v2"
-
-POOL_ID = 'topas-pool'  # Your Pool ID
+POOL_ID = 'topas-pool1'  # Your Pool ID
 POOL_NODE_COUNT = 2  # Pool node count
 POOL_VM_SIZE = 'STANDARD_A1_v2'  # VM Type/Size
-JOB_ID = 'testjob'  # Job ID
+#JOB_ID = 'testjob'  # Job ID
 STANDARD_OUT_FILE_NAME = 'stdout.txt'  # Standard Output file
 
 SIM_CONFIG_FILE = "SimulationConfigFile.txt"
-OUTPUT_DIR_PATH = "./work/RunDir/run"
+LOCAL_SIM_PATH = "/home/hector/mytopassimulations/test_sim_az_batch"
+RUN_SCRIPT = "main_run_script.sh"
+OUTPUT_DIR_PATH = "./"
 OUTPUT_FILE_NAMES_EXTENSIONS = ["csv", "header", "phsp"]
+OUTPUT_FILE_NAMES = ["DoseToNucleus_1p0mgml_1_AuNP15_electrons.csv",
+                     "nucleus_PHSP_1p0mgml_1_AuNP15_electrons.header",
+                     "nucleus_PHSP_1p0mgml_1_AuNP15_electrons.phsp"]
