@@ -41,7 +41,10 @@ from azure.batch.models import OutputFile, OutputFileBlobContainerDestination, O
 from azure.storage.blob import (
     BlobServiceClient,
     BlobSasPermissions,
-    generate_blob_sas
+    generate_blob_sas,
+    generate_container_sas,
+    ContainerSasPermissions,
+    AccountSasPermissions
 )
 from azure.batch import BatchServiceClient
 from azure.batch.batch_auth import SharedKeyCredentials
@@ -166,6 +169,28 @@ def generate_sas_url(
     return f"https://{account_name}.{account_domain}/{container_name}/{blob_name}?{sas_token}"
 
 
+def generate_sas_for_container(container_name, account_name, account_key, expiry_time=24):
+    """
+    Generate a SAS token for a container in the storage account.
+    :param container_name: Name of the container.
+    :param account_name: Name of the storage account.
+    :param account_key: Access key for the storage account.
+    :param expiry_time: Number of hours the SAS token should remain valid.
+    :return: SAS token as a string.
+    """
+
+    sas_token = generate_container_sas(
+        account_name=account_name,
+        container_name=container_name,
+        account_key=account_key,
+        permission=ContainerSasPermissions(read=True, write=True, list=True, delete=True),
+        # Set permissions as required.
+        expiry=datetime.datetime.utcnow() + datetime.timedelta(hours=expiry_time)
+    )
+
+    return sas_token
+
+
 def create_pool(batch_service_client: BatchServiceClient = None, pool_id: str = None):
     """
     Creates a pool of compute nodes with the specified OS settings.
@@ -244,6 +269,7 @@ def create_job(batch_service_client: BatchServiceClient, job_id: str, pool_id: s
 
     batch_service_client.job.add(job)
 
+
 def add_tasks_test(batch_service_client: BatchServiceClient, job_id: str, config_file: str, total_nodes: int):
     """
     Adds a task for each input file in the collection to the specified job.
@@ -267,11 +293,14 @@ def add_tasks_test(batch_service_client: BatchServiceClient, job_id: str, config
         )
         batch_client.task.add(job_id=JOB_ID, task=cloud_task)
 
-def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes: int, resource_file: ResourceFile):
+
+def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes: int, resource_file: ResourceFile,
+              container_token):
     """
     Adds a task for each input file in the collection to the specified job.
 
-    :param config_file:
+    :param container_token:
+    :param resource_file:
     :param total_nodes:
     :param batch_service_client: A Batch service client.
     :param str job_id: The ID of the job to which to add the tasks.
@@ -279,15 +308,21 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
     """
 
     tasks = []
-    #docker_wkdir="/topas/mytopassimulations"
+    # docker_wkdir="/topas/mytopassimulations"
 
-    COMMAND_TEMPLATE = ("/bin/bash -c \"current_dir=$(pwd) && wget -O $current_dir/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && ls -la && unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && $current_dir/{run_script}\"")
+    #COMMAND_TEMPLATE = ("/bin/bash -c \"current_dir=$(pwd) && wget -O $current_dir/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && ls -la && unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && $current_dir/{run_script}\"")
+
+    COMMAND_TEMPLATE = (
+        "/bin/bash -c \"current_dir=$(pwd) && "
+        "wget -O $current_dir/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && "
+        "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && "
+        "$current_dir/{run_script}\"")
 
     container_name = job_id
     for i in range(1, total_nodes + 1):
         # Construct the task command
         task_command = COMMAND_TEMPLATE.format(
-            #workingdir=docker_wkdir,
+            # workingdir=docker_wkdir,
             sas_url=resource_file.http_url,
             run_script=simconfig.RUN_SCRIPT
         )
@@ -301,8 +336,8 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
                 file_pattern=f"./{fname}",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
-                        container_url=f"https://{appconfig.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{container_name}",
-                        path=f"raw/run{i}/{fname}"
+                        container_url=f"https://{appconfig.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{container_name}?{container_token}",
+                        path=f"nodes_output/run{i}/{fname}"
                     )
                 ),
                 upload_options=OutputFileUploadOptions(upload_condition=OutputFileUploadCondition.task_success)
@@ -315,8 +350,7 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
             command_line=task_command,
             container_settings=TaskContainerSettings(image_name=appconfig.DOCKER_IMAGE),
             output_files=output_file_destinations
-            #resource_files=[ResourceFile(file_path="/mnt/SIM_DIR.zip",
-            #                             http_url=f"https://{appconfig.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{container_name}/SIM_DIR.zip")]
+            #resource_files=[resource_file]
 
         )
         batch_service_client.task.add(job_id=job_id, task=cloud_task)
@@ -439,11 +473,16 @@ if __name__ == '__main__':
     except ResourceExistsError:
         pass
 
+    # Generate sas token for the container
+    container_sas_token = generate_sas_for_container(STORAGE_CONTAINER_NAME,
+                                                     appconfig.STORAGE_ACCOUNT_NAME,
+                                                     appconfig.STORAGE_ACCOUNT_KEY)
+
     # The collection of data files that are to be processed by the tasks.
-    #input_file_paths = [os.path.join(sys.path[0], config.SIM_CONFIG_FILE)]
+    # input_file_paths = [os.path.join(sys.path[0], config.SIM_CONFIG_FILE)]
 
     # Upload the data files.
-    #input_files = [
+    # input_files = [
     #    upload_file_to_container(blob_service_client, input_container_name, file_path)
     #    for file_path in input_file_paths]
 
@@ -480,7 +519,7 @@ if __name__ == '__main__':
         create_job(batch_client, JOB_ID, simconfig.POOL_ID)
 
         # Add the tasks to the job.
-        add_tasks(batch_client, JOB_ID, simconfig.POOL_NODE_COUNT, resource_zip_file)
+        add_tasks(batch_client, JOB_ID, simconfig.POOL_NODE_COUNT, resource_zip_file, container_sas_token)
 
         # Pause execution until tasks reach Completed state.
         wait_for_tasks_to_complete(batch_client, JOB_ID, datetime.timedelta(minutes=30))
