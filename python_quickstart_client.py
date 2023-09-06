@@ -310,13 +310,16 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
     tasks = []
     # docker_wkdir="/topas/mytopassimulations"
 
-    #COMMAND_TEMPLATE = ("/bin/bash -c \"current_dir=$(pwd) && wget -O $current_dir/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && ls -la && unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && $current_dir/{run_script}\"")
-
     COMMAND_TEMPLATE = (
         "/bin/bash -c \"current_dir=$(pwd) && "
-        "wget -O $current_dir/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && "
-        "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && "
-        "$current_dir/{run_script}\"")
+        "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && "
+        "ls -la && $current_dir/{run_script}\"")
+
+    #COMMAND_TEMPLATE = (
+    #    "/bin/bash -c \"current_dir=$(pwd) && "
+    #    "wget -O $current_dir/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && "
+    #    "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && "
+    #    "$current_dir/{run_script}\"")
 
     container_name = job_id
     for i in range(1, total_nodes + 1):
@@ -349,8 +352,8 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
             id=f"task-{i}",
             command_line=task_command,
             container_settings=TaskContainerSettings(image_name=appconfig.DOCKER_IMAGE),
-            output_files=output_file_destinations
-            #resource_files=[resource_file]
+            output_files=output_file_destinations,
+            resource_files=[resource_file]
 
         )
         batch_service_client.task.add(job_id=job_id, task=cloud_task)
