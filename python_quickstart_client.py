@@ -279,16 +279,15 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
     """
 
     tasks = []
-    docker_wkdir="/topas/mytopassimulations"
+    #docker_wkdir="/topas/mytopassimulations"
 
-    # This command works when executed in the container but fails in the wget whe called in the batch run
-    COMMAND_TEMPLATE = ("/bin/bash -c \"pwd && cd {workingdir} && pwd && wget -O {workingdir}/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && ls -la && unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && {workingdir}/{run_script}\"")
+    COMMAND_TEMPLATE = ("/bin/bash -c \"current_dir=$(pwd) && wget -O $current_dir/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && ls -la && unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && $current_dir/{run_script}\"")
 
     container_name = job_id
     for i in range(1, total_nodes + 1):
         # Construct the task command
         task_command = COMMAND_TEMPLATE.format(
-            workingdir=docker_wkdir,
+            #workingdir=docker_wkdir,
             sas_url=resource_file.http_url,
             run_script=simconfig.RUN_SCRIPT
         )
