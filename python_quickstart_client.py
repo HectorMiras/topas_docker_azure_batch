@@ -336,15 +336,15 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
         # Define output file destinations for this specific task
         output_file_destinations = [
             OutputFile(
-                file_pattern=f"./{fname}",
+                file_pattern=f"./{fpattern}",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
                         container_url=f"https://{appconfig.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{container_name}?{container_token}",
-                        path=f"nodes_output/run{i}/{fname}"
+                        path=f"nodes_output/run{i}"
                     )
                 ),
                 upload_options=OutputFileUploadOptions(upload_condition=OutputFileUploadCondition.task_success)
-            ) for fname in simconfig.OUTPUT_FILE_NAMES
+            ) for fpattern in simconfig.OUTPUT_FILE_PATTERNS
         ]
 
         # Define the task

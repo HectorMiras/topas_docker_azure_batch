@@ -21,17 +21,14 @@
 Simulation parameters
 """
 
-POOL_ID = 'topas-pool2'  # Your Pool ID
+POOL_ID = 'topas-pool1'  # Your Pool ID
 POOL_NODE_COUNT = 2  # Pool node count
 POOL_VM_SIZE = 'STANDARD_A1_v2'  # VM Type/Size
-#JOB_ID = 'testjob'  # Job ID
 STANDARD_OUT_FILE_NAME = 'stdout.txt'  # Standard Output file
 
 SIM_CONFIG_FILE = "SimulationConfigFile.txt"
 LOCAL_SIM_PATH = "/home/hector/mytopassimulations/test_sim_az_batch"
 RUN_SCRIPT = "main_run_script.sh"
-OUTPUT_DIR_PATH = "./"
-OUTPUT_FILE_NAMES_EXTENSIONS = ["csv", "header", "phsp"]
-OUTPUT_FILE_NAMES = ["DoseToNucleus_1p0mgml_1_AuNP15_electrons.csv",
-                     "nucleus_PHSP_1p0mgml_1_AuNP15_electrons.header",
-                     "nucleus_PHSP_1p0mgml_1_AuNP15_electrons.phsp"]
+OUTPUT_FILE_PATTERNS = ["*.csv",
+                     "*.header",
+                     "*.phsp"]
