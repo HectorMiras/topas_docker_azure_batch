@@ -1,41 +1,11 @@
-# python quickstart client Code Sample
-#
-# Copyright (c) Microsoft Corporation
-#
-# All rights reserved.
-#
-# MIT License
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-"""
-Create a pool of nodes to output text files from azure blob storage.
-"""
-
 import datetime
 import io
 import os
 import sys
 import time
-import zipfile
-import shutil
 
+import azure.batch.models as batchmodels
+from azure.batch import BatchServiceClient
 from azure.batch.models import OutputFile, OutputFileBlobContainerDestination, OutputFileUploadOptions, \
     OutputFileUploadCondition, CloudTask, TaskContainerSettings, OutputFileDestination, ResourceFile
 from azure.storage.blob import (
@@ -43,56 +13,10 @@ from azure.storage.blob import (
     BlobSasPermissions,
     generate_blob_sas,
     generate_container_sas,
-    ContainerSasPermissions,
-    AccountSasPermissions
+    ContainerSasPermissions
 )
-from azure.batch import BatchServiceClient
-from azure.batch.batch_auth import SharedKeyCredentials
-import azure.batch.models as batchmodels
-from azure.core.exceptions import ResourceExistsError
 
-import appconfig
-import simconfig
-
-DEFAULT_ENCODING = "utf-8"
-
-
-# Update the Batch and Storage account credential strings in config.py with values
-# unique to your accounts. These are used when constructing connection strings
-# for the Batch and Storage client objects.
-
-def query_yes_no(question: str, default: str = "yes") -> str:
-    """
-    Prompts the user for yes/no input, displaying the specified question text.
-
-    :param str question: The text of the prompt for input.
-    :param str default: The default if the user hits <ENTER>. Acceptable values
-    are 'yes', 'no', and None.
-    :return: 'yes' or 'no'
-    """
-    valid = {'y': 'yes', 'n': 'no'}
-    if default is None:
-        prompt = ' [y/n] '
-    elif default == 'yes':
-        prompt = ' [Y/n] '
-    elif default == 'no':
-        prompt = ' [y/N] '
-    else:
-        raise ValueError(f"Invalid default answer: '{default}'")
-
-    choice = default
-
-    while 1:
-        user_input = input(question + prompt).lower()
-        if not user_input:
-            break
-        try:
-            choice = valid[user_input[0]]
-            break
-        except (KeyError, IndexError):
-            print("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
-
-    return choice
+from auxiliar_methods import _read_stream_as_string, DEFAULT_ENCODING
 
 
 def print_batch_exception(batch_exception: batchmodels.BatchErrorException):
@@ -191,15 +115,12 @@ def generate_sas_for_container(container_name, account_name, account_key, expiry
     return sas_token
 
 
-def create_pool(batch_service_client: BatchServiceClient = None, pool_id: str = None):
+def create_pool(batch_service_client: BatchServiceClient, pool_id: str, node_count: int, docker_image: str):
     """
     Creates a pool of compute nodes with the specified OS settings.
 
     :param batch_service_client: A Batch service client.
     :param str pool_id: An ID for the new pool.
-    :param str publisher: Marketplace image publisher
-    :param str offer: Marketplace image offer
-    :param str sku: Marketplace image sku
     """
     print(f'Creating pool [{pool_id}]...')
 
@@ -215,7 +136,7 @@ def create_pool(batch_service_client: BatchServiceClient = None, pool_id: str = 
     )
     container_config = batchmodels.ContainerConfiguration(
         type=batchmodels.ContainerType.docker_compatible,
-        container_image_names=[appconfig.DOCKER_IMAGE],
+        container_image_names=[docker_image],
         container_registries=[{"registry_server": "docker.io",
                                "user_name": f"{appconfig.DOCKER_USER}",
                                "password": f"{appconfig.DOCKER_TOKEN}"}])
@@ -233,7 +154,7 @@ def create_pool(batch_service_client: BatchServiceClient = None, pool_id: str = 
             container_configuration=container_config,
             node_agent_sku_id="batch.node.ubuntu 20.04"),
         vm_size=simconfig.POOL_VM_SIZE,
-        target_dedicated_nodes=simconfig.POOL_NODE_COUNT
+        target_dedicated_nodes=node_count
     )
     batch_service_client.pool.add(new_pool)
 
@@ -241,11 +162,11 @@ def create_pool(batch_service_client: BatchServiceClient = None, pool_id: str = 
     timeout = datetime.timedelta(minutes=30)  # For example, wait up to 30 minutes
     timeout_expiration = datetime.datetime.now() + timeout
     while datetime.datetime.now() < timeout_expiration:
-        pool = batch_client.pool.get(pool_id)
+        pool = batch_service_client.pool.get(pool_id)
         # Check if the number of dedicated nodesbatch_client.task.add(job_id=JOB_ID, task=cloud_task) in 'idle' state equals the total number of VMs
         if pool.current_dedicated_nodes == simconfig.POOL_NODE_COUNT and all(
-                node.state == batchmodels.ComputeNodeState.idle for node in batch_client.compute_node.list(pool.id)):
-            print(f"All {simconfig.POOL_NODE_COUNT} VMs in the pool are ready!")
+                node.state == batchmodels.ComputeNodeState.idle for node in batch_service_client.compute_node.list(pool.id)):
+            print(f"All {node_count} VMs in the pool are ready!")
             break
         print("Waiting for VMs to be ready...")
         time.sleep(30)  # Wait for 60 seconds before checking again
@@ -270,36 +191,13 @@ def create_job(batch_service_client: BatchServiceClient, job_id: str, pool_id: s
     batch_service_client.job.add(job)
 
 
-def add_tasks_test(batch_service_client: BatchServiceClient, job_id: str, config_file: str, total_nodes: int):
-    """
-    Adds a task for each input file in the collection to the specified job.
-
-    :param config_file:
-    :param total_nodes:
-    :param batch_service_client: A Batch service client.
-    :param str job_id: The ID of the job to which to add the tasks.
-     created for each input file.
-    """
-
-    for i in range(1, total_nodes + 1):
-        # Construct the task command
-        task_command = "/bin/bash -c 'pwd && cd /topas/mytopassimulations && pwd && ls -la'"
-
-        # Define the task
-        cloud_task = CloudTask(
-            id=f"task-{i}",
-            command_line=task_command,
-            container_settings=TaskContainerSettings(image_name=appconfig.DOCKER_IMAGE),
-        )
-        batch_client.task.add(job_id=JOB_ID, task=cloud_task)
-
-
 def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes: int, resource_file: ResourceFile,
-              container_token):
+              container_url: str, docker_image: str, command: str):
     """
     Adds a task for each input file in the collection to the specified job.
 
-    :param container_token:
+    :param container_url:
+    :param docker_image:
     :param resource_file:
     :param total_nodes:
     :param batch_service_client: A Batch service client.
@@ -307,30 +205,9 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
      created for each input file.
     """
 
-    tasks = []
-    # docker_wkdir="/topas/mytopassimulations"
-    git_clone_command = f'git clone https://{appconfig.GIT_TOKEN}@github.com/{appconfig.GIT_USER}/{appconfig.GIT_REPO}.git'
-    COMMAND_TEMPLATE = (
-        "/bin/bash -c \"current_dir=$(pwd) && "
-        "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && "
-        "{git_command} && "
-        "ls -la && $current_dir/{run_script}\"")
-
-    #COMMAND_TEMPLATE = (
-    #    "/bin/bash -c \"current_dir=$(pwd) && "
-    #    "wget -O $current_dir/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && "
-    #    "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && "
-    #    "$current_dir/{run_script}\"")
-
-    container_name = job_id
     for i in range(1, total_nodes + 1):
         # Construct the task command
-        task_command = COMMAND_TEMPLATE.format(
-            # workingdir=docker_wkdir,
-            sas_url=resource_file.http_url,
-            git_command=git_clone_command,
-            run_script=simconfig.RUN_SCRIPT
-        )
+        task_command = command
 
         print(f'task_command: {task_command}')
         print(" ")
@@ -341,7 +218,7 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
                 file_pattern=f"./{fpattern}",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
-                        container_url=f"https://{appconfig.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{container_name}?{container_token}",
+                        container_url=container_url,
                         path=f"nodes_output/run{i}"
                     )
                 ),
@@ -353,7 +230,7 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
         cloud_task = CloudTask(
             id=f"task-{i}",
             command_line=task_command,
-            container_settings=TaskContainerSettings(image_name=appconfig.DOCKER_IMAGE),
+            container_settings=TaskContainerSettings(image_name=docker_image),
             output_files=output_file_destinations,
             resource_files=[resource_file]
 
@@ -430,134 +307,3 @@ def print_task_output(batch_service_client: BatchServiceClient, job_id: str,
         print("Standard output:")
         print(file_text)
 
-
-def _read_stream_as_string(stream, encoding) -> str:
-    """
-    Read stream as string
-
-    :param stream: input stream generator
-    :param str encoding: The encoding of the file. The default is utf-8.
-    :return: The file content.
-    """
-    output = io.BytesIO()
-    try:
-        for data in stream:
-            output.write(data)
-        if encoding is None:
-            encoding = DEFAULT_ENCODING
-        return output.getvalue().decode(encoding)
-    finally:
-        output.close()
-
-
-if __name__ == '__main__':
-
-    start_time = datetime.datetime.now().replace(microsecond=0)
-    print(f'Sample start: {start_time}')
-    print()
-
-    # Create the blob client, for use in obtaining references to
-    # blob storage containers and uploading files to containers.
-    blob_service_client = BlobServiceClient(
-        account_url=f"https://{appconfig.STORAGE_ACCOUNT_NAME}.{appconfig.STORAGE_ACCOUNT_DOMAIN}/",
-        credential=appconfig.STORAGE_ACCOUNT_KEY
-    )
-
-    # Generate the date in yyyymmddhhmmss format
-    CURRENT_DATE = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    # Define Job ID with the current date
-    JOB_ID = f"topas-job-{CURRENT_DATE}"
-    # Use job name as the name for the output container
-    STORAGE_CONTAINER_NAME = JOB_ID
-    POOL_ID = simconfig.SIM_ID
-
-    # Use the blob client to create the containers in Azure Storage if they
-    # don't yet exist.
-    input_container_name = STORAGE_CONTAINER_NAME  # pylint: disable=invalid-name
-    try:
-        blob_service_client.create_container(input_container_name)
-    except ResourceExistsError:
-        pass
-
-    # Generate sas token for the container
-    container_sas_token = generate_sas_for_container(STORAGE_CONTAINER_NAME,
-                                                     appconfig.STORAGE_ACCOUNT_NAME,
-                                                     appconfig.STORAGE_ACCOUNT_KEY)
-
-    # The collection of data files that are to be processed by the tasks.
-    # input_file_paths = [os.path.join(sys.path[0], config.SIM_CONFIG_FILE)]
-
-    # Upload the data files.
-    # input_files = [
-    #    upload_file_to_container(blob_service_client, input_container_name, file_path)
-    #    for file_path in input_file_paths]
-
-    # Set the path to the directory you want to zip
-    directory_to_zip = simconfig.LOCAL_SIM_PATH
-
-    # Set the path for the output zip file (without extension)
-    output_filename = os.path.join(sys.path[0], 'SIM_DIR')
-
-    # Create the zip archive
-    shutil.make_archive(output_filename, 'zip', directory_to_zip)
-
-    # Upload the zipped file
-    resource_zip_file = upload_file_to_container(blob_service_client, input_container_name, f"{output_filename}.zip")
-
-    # Optionally, you can remove the zip file after uploading if you don't need it
-    # os.remove(zip_filename)
-
-    # Create a Batch service client. We'll now be interacting with the Batch
-    # service in addition to Storage
-    credentials = SharedKeyCredentials(appconfig.BATCH_ACCOUNT_NAME,
-                                       appconfig.BATCH_ACCOUNT_KEY)
-
-    batch_client = BatchServiceClient(
-        credentials,
-        batch_url=appconfig.BATCH_ACCOUNT_URL)
-
-    try:
-        # Create the pool that will contain the compute nodes that will execute the
-        # tasks.
-        create_pool(batch_client, POOL_ID)
-
-        # Create the job that will run the tasks.
-        create_job(batch_client, JOB_ID, POOL_ID)
-
-        # Add the tasks to the job.
-        add_tasks(batch_client, JOB_ID, simconfig.POOL_NODE_COUNT, resource_zip_file, container_sas_token)
-
-        # Pause execution until tasks reach Completed state.
-        wait_for_tasks_to_complete(batch_client, JOB_ID, datetime.timedelta(minutes=30))
-
-        print("  Success! All tasks reached the 'Completed' state within the "
-              "specified timeout period.")
-
-        # Print the stdout.txt and stderr.txt files for each task to the console
-        print_task_output(batch_client, JOB_ID)
-
-        # Print out some timing info
-        end_time = datetime.datetime.now().replace(microsecond=0)
-        print()
-        print(f'Sample end: {end_time}')
-        elapsed_time = end_time - start_time
-        print(f'Elapsed time: {elapsed_time}')
-        print()
-        input('Press ENTER to exit...')
-
-    except batchmodels.BatchErrorException as err:
-        print_batch_exception(err)
-        raise
-
-    finally:
-        # Clean up storage resources
-        if query_yes_no('Delete container?') == 'yes':
-            print(f'Deleting container [{input_container_name}]...')
-            blob_service_client.delete_container(input_container_name)
-
-        # Clean up Batch resources (if the user so chooses).
-        if query_yes_no('Delete job?') == 'yes':
-            batch_client.job.delete(JOB_ID)
-
-        if query_yes_no('Delete pool?') == 'yes':
-            batch_client.pool.delete(POOL_ID)
