@@ -218,7 +218,7 @@ def create_pool(batch_service_client: BatchServiceClient = None, pool_id: str = 
         container_image_names=[appconfig.DOCKER_IMAGE],
         container_registries=[{"registry_server": "docker.io",
                                "user_name": f"{appconfig.DOCKER_USER}",
-                               "password": f"{appconfig.DOCKER_PASS}"}])
+                               "password": f"{appconfig.DOCKER_TOKEN}"}])
 
     new_pool = batchmodels.PoolAddParameter(
         id=pool_id,
@@ -309,10 +309,11 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
 
     tasks = []
     # docker_wkdir="/topas/mytopassimulations"
-
+    git_clone_command = f'git clone https://{appconfig.GIT_TOKEN}@github.com/{appconfig.GIT_USER}/{appconfig.GIT_REPO}.git'
     COMMAND_TEMPLATE = (
         "/bin/bash -c \"current_dir=$(pwd) && "
         "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && "
+        "{git_command} && "
         "ls -la && $current_dir/{run_script}\"")
 
     #COMMAND_TEMPLATE = (
@@ -327,6 +328,7 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
         task_command = COMMAND_TEMPLATE.format(
             # workingdir=docker_wkdir,
             sas_url=resource_file.http_url,
+            git_command=git_clone_command,
             run_script=simconfig.RUN_SCRIPT
         )
 
@@ -467,6 +469,7 @@ if __name__ == '__main__':
     JOB_ID = f"topas-job-{CURRENT_DATE}"
     # Use job name as the name for the output container
     STORAGE_CONTAINER_NAME = JOB_ID
+    POOL_ID = simconfig.SIM_ID
 
     # Use the blob client to create the containers in Azure Storage if they
     # don't yet exist.
@@ -516,10 +519,10 @@ if __name__ == '__main__':
     try:
         # Create the pool that will contain the compute nodes that will execute the
         # tasks.
-        create_pool(batch_client, simconfig.POOL_ID)
+        create_pool(batch_client, POOL_ID)
 
         # Create the job that will run the tasks.
-        create_job(batch_client, JOB_ID, simconfig.POOL_ID)
+        create_job(batch_client, JOB_ID, POOL_ID)
 
         # Add the tasks to the job.
         add_tasks(batch_client, JOB_ID, simconfig.POOL_NODE_COUNT, resource_zip_file, container_sas_token)
@@ -557,4 +560,4 @@ if __name__ == '__main__':
             batch_client.job.delete(JOB_ID)
 
         if query_yes_no('Delete pool?') == 'yes':
-            batch_client.pool.delete(simconfig.POOL_ID)
+            batch_client.pool.delete(POOL_ID)
