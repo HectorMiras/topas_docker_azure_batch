@@ -34,6 +34,7 @@ import os
 import shutil
 import sys
 import time
+import json
 
 import azure.batch.models as batchmodels
 from azure.batch import BatchServiceClient
@@ -49,9 +50,9 @@ from azure.storage.blob import (
     ContainerSasPermissions
 )
 
-import appconfig
-import simconfig
-from auxiliar_methods import query_yes_no
+#import appconfig
+#import simconfig
+from auxiliar_methods import query_yes_no, ConfigClass
 from azure_batch_methods import generate_sas_for_container, upload_file_to_container, create_pool, create_job, \
     add_tasks, wait_for_tasks_to_complete, print_task_output, print_batch_exception
 
@@ -71,6 +72,10 @@ if __name__ == '__main__':
     start_time = datetime.datetime.now().replace(microsecond=0)
     print(f'Sample start: {start_time}')
     print()
+
+
+    appconfig=ConfigClass('appconfig.json')
+    simconfig=ConfigClass('simconfig.json')
 
     # Create the blob client, for use in obtaining references to
     # blob storage containers and uploading files to containers.
@@ -119,7 +124,12 @@ if __name__ == '__main__':
     shutil.make_archive(output_zip_path, 'zip', directory_to_zip)
 
     # Upload the zipped file
-    resource_zip_file = upload_file_to_container(blob_service_client, input_container_name, f"{output_zip_path}.zip")
+    resource_zip_file = upload_file_to_container(
+        appconfig=appconfig,
+        blob_storage_service_client=blob_service_client,
+        container_name=input_container_name,
+        file_path=f"{output_zip_path}.zip"
+    )
 
 
     # Optionally, you can remove the zip file after uploading if you don't need it
@@ -137,9 +147,11 @@ if __name__ == '__main__':
     try:
         # Create the pool that will contain the compute nodes that will execute the
         # tasks.
-        create_pool(batch_service_client=batch_client,
+        create_pool(appconfig=appconfig,
+                    batch_service_client=batch_client,
                     pool_id=POOL_ID_WORKERS,
                     node_count=simconfig.POOL_NODE_COUNT,
+                    vm_size=simconfig.POOL_VM_SIZE,
                     docker_image=appconfig.WORKER_DOCKER_IMAGE)
 
         # Create the job that will run the tasks.
@@ -167,7 +179,8 @@ if __name__ == '__main__':
                   resource_file=resource_zip_file,
                   container_url=container_url,
                   docker_image=appconfig.WORKER_DOCKER_IMAGE,
-                  command=command)
+                  command=command,
+                  file_patterns=simconfig.OUTPUT_FILE_PATTERNS)
 
         # Pause execution until tasks reach Completed state.
         wait_for_tasks_to_complete(batch_client, JOB_ID_WORKERS, datetime.timedelta(minutes=30))
@@ -176,7 +189,7 @@ if __name__ == '__main__':
               "specified timeout period.")
 
         # Print the stdout.txt and stderr.txt files for each task to the console
-        print_task_output(batch_client, JOB_ID_WORKERS)
+        print_task_output(batch_client, JOB_ID_WORKERS, "stdout.txt")
 
         # Print out some timing info
         end_time = datetime.datetime.now().replace(microsecond=0)

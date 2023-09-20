@@ -16,7 +16,7 @@ from azure.storage.blob import (
     ContainerSasPermissions
 )
 
-from auxiliar_methods import _read_stream_as_string, DEFAULT_ENCODING
+from auxiliar_methods import _read_stream_as_string, DEFAULT_ENCODING, ConfigClass
 
 
 def print_batch_exception(batch_exception: batchmodels.BatchErrorException):
@@ -38,7 +38,7 @@ def print_batch_exception(batch_exception: batchmodels.BatchErrorException):
     print('-------------------------------------------')
 
 
-def upload_file_to_container(blob_storage_service_client: BlobServiceClient,
+def upload_file_to_container(appconfig: ConfigClass , blob_storage_service_client: BlobServiceClient,
                              container_name: str, file_path: str) -> batchmodels.ResourceFile:
     """
     Uploads a local file to an Azure Blob storage container.
@@ -115,7 +115,8 @@ def generate_sas_for_container(container_name, account_name, account_key, expiry
     return sas_token
 
 
-def create_pool(batch_service_client: BatchServiceClient, pool_id: str, node_count: int, docker_image: str):
+def create_pool(appconfig: ConfigClass, batch_service_client: BatchServiceClient,
+                pool_id: str, node_count: int, vm_size: str, docker_image: str):
     """
     Creates a pool of compute nodes with the specified OS settings.
 
@@ -153,7 +154,7 @@ def create_pool(batch_service_client: BatchServiceClient, pool_id: str, node_cou
             # ),
             container_configuration=container_config,
             node_agent_sku_id="batch.node.ubuntu 20.04"),
-        vm_size=simconfig.POOL_VM_SIZE,
+        vm_size=vm_size,
         target_dedicated_nodes=node_count
     )
     batch_service_client.pool.add(new_pool)
@@ -164,7 +165,7 @@ def create_pool(batch_service_client: BatchServiceClient, pool_id: str, node_cou
     while datetime.datetime.now() < timeout_expiration:
         pool = batch_service_client.pool.get(pool_id)
         # Check if the number of dedicated nodesbatch_client.task.add(job_id=JOB_ID, task=cloud_task) in 'idle' state equals the total number of VMs
-        if pool.current_dedicated_nodes == simconfig.POOL_NODE_COUNT and all(
+        if pool.current_dedicated_nodes == node_count and all(
                 node.state == batchmodels.ComputeNodeState.idle for node in batch_service_client.compute_node.list(pool.id)):
             print(f"All {node_count} VMs in the pool are ready!")
             break
@@ -192,7 +193,7 @@ def create_job(batch_service_client: BatchServiceClient, job_id: str, pool_id: s
 
 
 def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes: int, resource_file: ResourceFile,
-              container_url: str, docker_image: str, command: str):
+              container_url: str, docker_image: str, command: str, file_patterns: list[str]):
     """
     Adds a task for each input file in the collection to the specified job.
 
@@ -204,7 +205,6 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
     :param str job_id: The ID of the job to which to add the tasks.
      created for each input file.
     """
-
     for i in range(1, total_nodes + 1):
         # Construct the task command
         task_command = command
@@ -223,7 +223,7 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
                     )
                 ),
                 upload_options=OutputFileUploadOptions(upload_condition=OutputFileUploadCondition.task_success)
-            ) for fpattern in simconfig.OUTPUT_FILE_PATTERNS
+            ) for fpattern in file_patterns
         ]
 
         # Define the task
@@ -272,7 +272,7 @@ def wait_for_tasks_to_complete(batch_service_client: BatchServiceClient, job_id:
 
 
 def print_task_output(batch_service_client: BatchServiceClient, job_id: str,
-                      text_encoding: str = None):
+                      output_filename: str, text_encoding: str = None):
     """
     Prints the stdout.txt file for each task in the job.
 
@@ -292,7 +292,7 @@ def print_task_output(batch_service_client: BatchServiceClient, job_id: str,
         print(f"Node: {node_id}")
 
         stream = batch_service_client.file.get_from_task(
-            job_id, task.id, simconfig.STANDARD_OUT_FILE_NAME)
+            job_id, task.id, output_filename)
 
         file_text = _read_stream_as_string(
             stream,

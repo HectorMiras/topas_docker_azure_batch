@@ -23,9 +23,7 @@ from azure.storage.blob import (
     ContainerSasPermissions
 )
 
-import appconfig
-import simconfig
-from auxiliar_methods import query_yes_no
+from auxiliar_methods import query_yes_no, ConfigClass
 from azure_batch_methods import generate_sas_for_container, upload_file_to_container, create_pool, create_job, \
     add_tasks, wait_for_tasks_to_complete, print_task_output, print_batch_exception, generate_sas_url
 
@@ -34,6 +32,9 @@ if __name__ == '__main__':
     start_time = datetime.datetime.now().replace(microsecond=0)
     print(f'Sample start: {start_time}')
     print()
+
+    appconfig = ConfigClass('appconfig.json')
+    simconfig = ConfigClass('simconfig.json')
 
     # Create the blob client, for use in obtaining references to
     # blob storage containers and uploading files to containers.
@@ -81,9 +82,11 @@ if __name__ == '__main__':
     try:
         # Create the pool that will contain the compute nodes that will execute the
         # tasks.
-        create_pool(batch_service_client=batch_client,
+        create_pool(appconfig=appconfig,
+                    batch_service_client=batch_client,
                     pool_id=POOL_ID_WORKERS,
                     node_count=simconfig.POOL_NODE_COUNT,
+                    vm_size=simconfig.POOL_VM_SIZE,
                     docker_image=appconfig.REDUCER_DOCKER_IMAGE)
 
         # Create the job that will run the tasks.
@@ -110,7 +113,8 @@ if __name__ == '__main__':
                   resource_file=resource_files,
                   container_url=container_url,
                   docker_image=appconfig.REDUCER_DOCKER_IMAGE,
-                  command=command)
+                  command=command,
+                  file_patterns=simconfig.OUTPUT_FILE_PATTERNS)
 
         # Pause execution until tasks reach Completed state.
         wait_for_tasks_to_complete(batch_client, JOB_ID_REDUCER, datetime.timedelta(minutes=30))
@@ -119,7 +123,7 @@ if __name__ == '__main__':
               "specified timeout period.")
 
         # Print the stdout.txt and stderr.txt files for each task to the console
-        print_task_output(batch_client, JOB_ID_REDUCER)
+        print_task_output(batch_client, JOB_ID_REDUCER, "stdout.txt")
 
         # Print out some timing info
         end_time = datetime.datetime.now().replace(microsecond=0)

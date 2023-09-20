@@ -1,6 +1,22 @@
 import io
+import json
 
 DEFAULT_ENCODING = "utf-8"
+
+class ConfigClass:
+    def __init__(self, json_filepath):
+        with open(json_filepath, 'r') as file:
+            data = json.load(file)
+
+        for key, value in data.items():
+            setattr(self, key, value)
+
+    def __repr__(self):
+        attributes = vars(self)
+        return f'Config({", ".join(f"{k}={v}" for k, v in attributes.items())})'
+
+
+
 
 def query_yes_no(question: str, default: str = "yes") -> str:
     """
