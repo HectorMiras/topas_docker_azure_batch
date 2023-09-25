@@ -15,6 +15,7 @@ from azure.storage.blob import (
     generate_container_sas,
     ContainerSasPermissions
 )
+from azure.core.exceptions import ResourceNotFoundError, HttpResponseError
 
 from auxiliar_methods import _read_stream_as_string, DEFAULT_ENCODING, ConfigClass
 
@@ -38,7 +39,7 @@ def print_batch_exception(batch_exception: batchmodels.BatchErrorException):
     print('-------------------------------------------')
 
 
-def upload_file_to_container(appconfig: ConfigClass , blob_storage_service_client: BlobServiceClient,
+def upload_file_to_container(appconfig: ConfigClass, blob_storage_service_client: BlobServiceClient,
                              container_name: str, file_path: str) -> batchmodels.ResourceFile:
     """
     Uploads a local file to an Azure Blob storage container.
@@ -115,11 +116,73 @@ def generate_sas_for_container(container_name, account_name, account_key, expiry
     return sas_token
 
 
+def delete_blob_from_container(blob_storage_service_client: BlobServiceClient,
+                               container_name: str, blob_name: str) -> None:
+    """
+    Deletes a blob from an Azure Blob storage container.
+
+    :param blob_storage_service_client: A blob service client.
+    :param str container_name: The name of the Azure Blob storage container.
+    :param str blob_name: The name of the blob (file) to delete.
+    """
+    blob_client = blob_storage_service_client.get_blob_client(container_name, blob_name)
+
+    try:
+
+        blob_client.delete_blob()
+
+        print(f'Blob {blob_name} deleted successfully from container [{container_name}].')
+    except ResourceNotFoundError:
+        print(f"Blob {blob_name} not found in container {container_name}.")
+    except HttpResponseError as e:
+        print(f"Failed to delete blob {blob_name} from container {container_name}. Error: {e.message}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+
+def download_output_files(appconfig: ConfigClass, container_name: str, local_dir: str):
+    # Initialize BlobServiceClient
+    blob_service_client = BlobServiceClient(
+        account_url=f"https://{appconfig.STORAGE_ACCOUNT_NAME}.{appconfig.STORAGE_ACCOUNT_DOMAIN}/",
+        credential=appconfig.STORAGE_ACCOUNT_KEY
+    )
+
+    # Create the local directory if it does not exist
+    os.makedirs(local_dir, exist_ok=True)
+
+    # Get a reference to the container
+    container_client = blob_service_client.get_container_client(container_name)
+
+    # List all blobs in the directory and download them one by one
+    blob_list = container_client.list_blobs(name_starts_with="nodes_output/")
+    for blob in blob_list:
+        blob_name = blob.name
+        blob_dir, blob_file = os.path.split(blob_name)
+
+        # Create local directories as needed
+        os.makedirs(os.path.join(local_dir, blob_dir), exist_ok=True)
+
+        # Define the local file path to download to
+        download_file_path = os.path.join(local_dir, blob_name)
+
+        # Download the blob to local storage
+        with open(download_file_path, "wb") as my_blob:
+            blob_data = container_client.get_blob_client(blob_name)
+            data_stream = blob_data.download_blob()
+            data_stream.readinto(my_blob)
+
+    print("Download completed!")
+
+
 def create_pool(appconfig: ConfigClass, batch_service_client: BatchServiceClient,
                 pool_id: str, node_count: int, vm_size: str, docker_image: str):
     """
     Creates a pool of compute nodes with the specified OS settings.
 
+    :param docker_image:
+    :param vm_size:
+    :param node_count:
+    :param appconfig:
     :param batch_service_client: A Batch service client.
     :param str pool_id: An ID for the new pool.
     """
@@ -166,7 +229,8 @@ def create_pool(appconfig: ConfigClass, batch_service_client: BatchServiceClient
         pool = batch_service_client.pool.get(pool_id)
         # Check if the number of dedicated nodesbatch_client.task.add(job_id=JOB_ID, task=cloud_task) in 'idle' state equals the total number of VMs
         if pool.current_dedicated_nodes == node_count and all(
-                node.state == batchmodels.ComputeNodeState.idle for node in batch_service_client.compute_node.list(pool.id)):
+                node.state == batchmodels.ComputeNodeState.idle for node in
+                batch_service_client.compute_node.list(pool.id)):
             print(f"All {node_count} VMs in the pool are ready!")
             break
         print("Waiting for VMs to be ready...")
@@ -192,8 +256,9 @@ def create_job(batch_service_client: BatchServiceClient, job_id: str, pool_id: s
     batch_service_client.job.add(job)
 
 
-def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes: int, resource_file: ResourceFile,
-              container_url: str, docker_image: str, command: str, file_patterns: list[str]):
+def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes: int,
+              resource_files: list[ResourceFile], container_url: str, docker_image: str,
+              command: str, file_patterns: list[str]):
     """
     Adds a task for each input file in the collection to the specified job.
 
@@ -205,9 +270,18 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
     :param str job_id: The ID of the job to which to add the tasks.
      created for each input file.
     """
+
+    # Get the task type: workers or reducer
+    task_type = ""
+    if "workers" in job_id:
+        task_type = "workers"
+
+    if "reducer" in job_id:
+        task_type = "reducer"
+
     for i in range(1, total_nodes + 1):
         # Construct the task command
-        task_command = command
+        task_command = f'{command} {i}'
 
         print(f'task_command: {task_command}')
         print(" ")
@@ -215,11 +289,11 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
         # Define output file destinations for this specific task
         output_file_destinations = [
             OutputFile(
-                file_pattern=f"./{fpattern}",
+                file_pattern=f"./{fpattern}" if (task_type == "workers") else f"./nodes_output/results/*",
                 destination=OutputFileDestination(
                     container=OutputFileBlobContainerDestination(
                         container_url=container_url,
-                        path=f"nodes_output/run{i}"
+                        path=f"nodes_output/run{i}" if (task_type == "workers") else "nodes_output/results"
                     )
                 ),
                 upload_options=OutputFileUploadOptions(upload_condition=OutputFileUploadCondition.task_success)
@@ -232,7 +306,7 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
             command_line=task_command,
             container_settings=TaskContainerSettings(image_name=docker_image),
             output_files=output_file_destinations,
-            resource_files=[resource_file]
+            resource_files=resource_files
 
         )
         batch_service_client.task.add(job_id=job_id, task=cloud_task)
@@ -306,4 +380,3 @@ def print_task_output(batch_service_client: BatchServiceClient, job_id: str,
 
         print("Standard output:")
         print(file_text)
-

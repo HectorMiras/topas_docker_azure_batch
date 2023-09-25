@@ -1,70 +1,21 @@
-# python quickstart client Code Sample
-#
-# Copyright (c) Microsoft Corporation
-#
-# All rights reserved.
-#
-# MIT License
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 """
 Create a pool of nodes to output text files from azure blob storage.
 """
 
 import datetime
-import io
 import os
 import shutil
 import sys
-import time
-import json
 
 import azure.batch.models as batchmodels
 from azure.batch import BatchServiceClient
 from azure.batch.batch_auth import SharedKeyCredentials
-from azure.batch.models import OutputFile, OutputFileBlobContainerDestination, OutputFileUploadOptions, \
-    OutputFileUploadCondition, CloudTask, TaskContainerSettings, OutputFileDestination, ResourceFile
 from azure.core.exceptions import ResourceExistsError
-from azure.storage.blob import (
-    BlobServiceClient,
-    BlobSasPermissions,
-    generate_blob_sas,
-    generate_container_sas,
-    ContainerSasPermissions
-)
+from azure.storage.blob import BlobServiceClient
 
-#import appconfig
-#import simconfig
 from auxiliar_methods import query_yes_no, ConfigClass
 from azure_batch_methods import generate_sas_for_container, upload_file_to_container, create_pool, create_job, \
     add_tasks, wait_for_tasks_to_complete, print_task_output, print_batch_exception
-
-
-
-
-# Update the Batch and Storage account credential strings in config.py with values
-# unique to your accounts. These are used when constructing connection strings
-# for the Batch and Storage client objects.
-
-
-
 
 
 if __name__ == '__main__':
@@ -73,9 +24,8 @@ if __name__ == '__main__':
     print(f'Sample start: {start_time}')
     print()
 
-
-    appconfig=ConfigClass('appconfig.json')
-    simconfig=ConfigClass('simconfig.json')
+    appconfig = ConfigClass('appconfig.json')
+    simconfig = ConfigClass('simconfig.json')
 
     # Create the blob client, for use in obtaining references to
     # blob storage containers and uploading files to containers.
@@ -89,7 +39,7 @@ if __name__ == '__main__':
     # Define Job ID with the current date
     JOB_ID_WORKERS = f"{simconfig.SIM_ID}-workers-{CURRENT_DATE}"
     # Use job name as the name for the output container
-    STORAGE_CONTAINER_NAME = f"{simconfig.SIM_ID}-{CURRENT_DATE}"
+    STORAGE_CONTAINER_NAME = f"{simconfig.SIM_ID}"
     POOL_ID_WORKERS = f'{simconfig.SIM_ID}-workers'
 
     # Use the blob client to create the containers in Azure Storage if they
@@ -123,17 +73,20 @@ if __name__ == '__main__':
     # Create the zip archive
     shutil.make_archive(output_zip_path, 'zip', directory_to_zip)
 
-    # Upload the zipped file
-    resource_zip_file = upload_file_to_container(
-        appconfig=appconfig,
-        blob_storage_service_client=blob_service_client,
-        container_name=input_container_name,
-        file_path=f"{output_zip_path}.zip"
-    )
-
+    # Upload and generate ResourceFiles
+    files_to_upload = [f"{output_zip_path}.zip", "simconfig.json"]
+    resource_files = []
+    for file in files_to_upload:
+        resource_file = upload_file_to_container(
+            appconfig=appconfig,
+            blob_storage_service_client=blob_service_client,
+            container_name=STORAGE_CONTAINER_NAME,
+            file_path=file
+        )
+        resource_files.append(resource_file)
 
     # Optionally, you can remove the zip file after uploading if you don't need it
-    os.remove(output_zip_path)
+    os.remove(f"{output_zip_path}.zip")
 
     # Create a Batch service client. We'll now be interacting with the Batch
     # service in addition to Storage
@@ -176,7 +129,7 @@ if __name__ == '__main__':
         add_tasks(batch_service_client=batch_client,
                   job_id=JOB_ID_WORKERS,
                   total_nodes=simconfig.POOL_NODE_COUNT,
-                  resource_file=resource_zip_file,
+                  resource_files=resource_files,
                   container_url=container_url,
                   docker_image=appconfig.WORKER_DOCKER_IMAGE,
                   command=command,

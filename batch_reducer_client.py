@@ -3,29 +3,16 @@ Create a pool of 1 node to reduce files from storage.
 """
 
 import datetime
-import io
-import os
-import shutil
-import sys
-import time
 
 import azure.batch.models as batchmodels
 from azure.batch import BatchServiceClient
 from azure.batch.batch_auth import SharedKeyCredentials
-from azure.batch.models import OutputFile, OutputFileBlobContainerDestination, OutputFileUploadOptions, \
-    OutputFileUploadCondition, CloudTask, TaskContainerSettings, OutputFileDestination, ResourceFile
-from azure.core.exceptions import ResourceExistsError
-from azure.storage.blob import (
-    BlobServiceClient,
-    BlobSasPermissions,
-    generate_blob_sas,
-    generate_container_sas,
-    ContainerSasPermissions
-)
+from azure.storage.blob import BlobServiceClient
 
 from auxiliar_methods import query_yes_no, ConfigClass
-from azure_batch_methods import generate_sas_for_container, upload_file_to_container, create_pool, create_job, \
-    add_tasks, wait_for_tasks_to_complete, print_task_output, print_batch_exception, generate_sas_url
+from azure_batch_methods import (generate_sas_for_container, upload_file_to_container, create_pool, create_job, \
+                                 add_tasks, wait_for_tasks_to_complete, print_task_output, print_batch_exception,
+                                 delete_blob_from_container, download_output_files)
 
 if __name__ == '__main__':
 
@@ -45,26 +32,30 @@ if __name__ == '__main__':
 
     # Generate the date in yyyymmddhhmmss format
     CURRENT_DATE = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    # Define Job ID with the current date
-    JOB_ID_WORKERS = f"{simconfig.SIM_ID}-workers-{CURRENT_DATE}"
-    # Use job name as the name for the output container
-    STORAGE_CONTAINER_NAME = f"{simconfig.SIM_ID}-{CURRENT_DATE}"
-    POOL_ID_WORKERS = f'{simconfig.SIM_ID}-workers'
 
-    # Use the blob client to create the containers in Azure Storage if they
-    # don't yet exist.
-    input_container_name = STORAGE_CONTAINER_NAME  # pylint: disable=invalid-name
-    try:
-        blob_service_client.create_container(input_container_name)
-    except ResourceExistsError:
-        pass
+    STORAGE_CONTAINER_NAME = f'{simconfig.SIM_ID}'
 
     # Generate sas token for the container
     container_sas_token = generate_sas_for_container(STORAGE_CONTAINER_NAME,
                                                      appconfig.STORAGE_ACCOUNT_NAME,
                                                      appconfig.STORAGE_ACCOUNT_KEY)
-    container_url = f"https://{appconfig.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{input_container_name}?{container_sas_token}"
+    container_url = f"https://{appconfig.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{STORAGE_CONTAINER_NAME}?{container_sas_token}"
 
+    # Upload files and generate ResourceFiles
+    files_to_upload = ["download_files.py",
+                       "auxiliar_methods.py",
+                       "azure_batch_methods.py",
+                       "appconfig.json",
+                       "simconfig.json"]
+    resource_files = []
+    for file in files_to_upload:
+        resource_file = upload_file_to_container(
+            appconfig=appconfig,
+            blob_storage_service_client=blob_service_client,
+            container_name=STORAGE_CONTAINER_NAME,
+            file_path=file
+        )
+        resource_files.append(resource_file)
 
     # Create a Batch service client. We'll now be interacting with the Batch
     # service in addition to Storage
@@ -84,8 +75,8 @@ if __name__ == '__main__':
         # tasks.
         create_pool(appconfig=appconfig,
                     batch_service_client=batch_client,
-                    pool_id=POOL_ID_WORKERS,
-                    node_count=simconfig.POOL_NODE_COUNT,
+                    pool_id=POOL_ID_REDUCER,
+                    node_count=1,
                     vm_size=simconfig.POOL_VM_SIZE,
                     docker_image=appconfig.REDUCER_DOCKER_IMAGE)
 
@@ -98,23 +89,23 @@ if __name__ == '__main__':
         git_clone_command = f'git clone https://{appconfig.GIT_TOKEN}@github.com/{appconfig.GIT_USER}/{appconfig.GIT_REPO}.git'
         COMMAND_TEMPLATE = (
             "/bin/bash -c \"current_dir=$(pwd) && "
-            "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && "
+            "python download_files.py || (echo 'Failed to downloading files' && exit 1) &&"
             "{git_command} && "
-            "ls -la && $current_dir/{run_script}\"")
-        command = COMMAND_TEMPLATE.format(git_command=git_clone_command, run_script=simconfig.REDUCER_SCRIPT)
-
-        # resource files is now the blob container with the results
-        blob_name = f'{STORAGE_CONTAINER_NAME}/nodes_output'
-        # resource_files = get_results_dir_from_storage()
+            "ls -la && cd ./{git_repo} && "
+            "$current_dir/{git_repo}/{run_script} $current_dir/nodes_output && cd ..\"")
+        command = COMMAND_TEMPLATE.format(
+            git_command=git_clone_command,
+            git_repo=appconfig.GIT_REPO,
+            run_script=simconfig.REDUCER_SCRIPT)
 
         add_tasks(batch_service_client=batch_client,
                   job_id=JOB_ID_REDUCER,
                   total_nodes=1,
-                  resource_file=resource_files,
+                  resource_files=resource_files,
                   container_url=container_url,
                   docker_image=appconfig.REDUCER_DOCKER_IMAGE,
                   command=command,
-                  file_patterns=simconfig.OUTPUT_FILE_PATTERNS)
+                  file_patterns=[simconfig.OUTPUT_FILE_PATTERNS])
 
         # Pause execution until tasks reach Completed state.
         wait_for_tasks_to_complete(batch_client, JOB_ID_REDUCER, datetime.timedelta(minutes=30))
@@ -140,9 +131,21 @@ if __name__ == '__main__':
 
     finally:
         # Clean up storage resources
+        for file in files_to_upload:
+            delete_blob_from_container(
+                blob_storage_service_client=blob_service_client,
+                container_name=STORAGE_CONTAINER_NAME,
+                blob_name=file
+            )
+        if query_yes_no('Download simulation results:') == 'yes':
+            download_output_files(
+                appconfig=appconfig,
+                container_name=STORAGE_CONTAINER_NAME,
+                local_dir=f'{simconfig.LOCAL_SIM_PATH}'
+            )
         if query_yes_no('Delete container?') == 'yes':
-            print(f'Deleting reducer container [{input_container_name}]...')
-            blob_service_client.delete_container(input_container_name)
+            print(f'Deleting reducer container [{STORAGE_CONTAINER_NAME}]...')
+            blob_service_client.delete_container(STORAGE_CONTAINER_NAME)
 
         # Clean up Batch resources (if the user so chooses).
         if query_yes_no('Delete reducer job?') == 'yes':

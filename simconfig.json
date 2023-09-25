@@ -6,9 +6,5 @@
     "LOCAL_SIM_PATH": "/home/hector/mytopassimulations/test_sim_az_batch",
     "RUN_SCRIPT": "main_run_script.sh",
     "REDUCER_SCRIPT": "main_batch_reducer_script.sh",
-    "OUTPUT_FILE_PATTERNS": [
-        "*.csv",
-        "*.header",
-        "*.phsp"
-    ]
+    "OUTPUT_FILE_PATTERNS": ["DoseToCell*", "DoseToNucleus*electrons.csv", "DoseToNucleus*gammas.csv", "nucleus_PHSP*"]
 }
