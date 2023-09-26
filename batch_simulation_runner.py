@@ -56,14 +56,6 @@ if __name__ == '__main__':
                                                      appconfig.STORAGE_ACCOUNT_KEY)
     container_url = f"https://{appconfig.STORAGE_ACCOUNT_NAME}.blob.core.windows.net/{input_container_name}?{container_sas_token}"
 
-    # The collection of data files that are to be processed by the tasks.
-    # input_file_paths = [os.path.join(sys.path[0], config.SIM_CONFIG_FILE)]
-
-    # Upload the data files.
-    # input_files = [
-    #    upload_file_to_container(blob_service_client, input_container_name, file_path)
-    #    for file_path in input_file_paths]
-
     # Set the path to the directory you want to zip
     directory_to_zip = simconfig.LOCAL_SIM_PATH
 
@@ -111,13 +103,6 @@ if __name__ == '__main__':
         create_job(batch_service_client=batch_client,
                    job_id=JOB_ID_WORKERS,
                    pool_id=POOL_ID_WORKERS)
-
-        # Add the tasks to the job.
-        # COMMAND_TEMPLATE = (
-        #    "/bin/bash -c \"current_dir=$(pwd) && "
-        #    "wget -O $current_dir/SIM_DIR.zip '{sas_url}' || (echo 'Failed to download zip' && exit 1) && "
-        #    "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && ls -la && "
-        #    "$current_dir/{run_script}\"")
 
         git_clone_command = f'git clone https://{appconfig.GIT_TOKEN}@github.com/{appconfig.GIT_USER}/{appconfig.GIT_REPO}.git'
         COMMAND_TEMPLATE = (
