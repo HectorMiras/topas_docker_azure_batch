@@ -1,6 +1,34 @@
 """
-Create a pool of nodes to output text files from azure blob storage.
+Batch Workers Script
+
+Description:
+    This script manages and orchestrates the execution of simulation tasks using Azure Batch Service. It is designed
+    to automate the process of setting up Azure resources, submitting tasks, and handling the outputs.
+
+    Key Operations:
+    1. Configuration loading: Load settings from 'appconfig.json' and 'simconfig.json'.
+    2. Azure Blob Storage:
+        - Set up Blob Service Client for interactions with Azure's Blob Storage.
+        - Create storage containers and generate SAS tokens for authentication.
+        - Upload necessary files to the Blob Storage for use in the tasks.
+    3. Azure Batch:
+        - Set up a connection to the Azure Batch service.
+        - Create a pool of VMs using specified configurations (e.g., VM size, Docker image).
+        - Create and submit a job that contains tasks (simulations) to be run on the VMs in the pool.
+        - Each task clones a specified GitHub repository and runs a simulation script within.
+    4. Monitoring:
+        - Monitor the status of the tasks and ensure they complete successfully.
+    5. Cleanup (Optional):
+        - Provide options to delete the storage container, job, and pool in Azure, aiding in resource management.
+
+Usage:
+    Run this script directly to initiate the worker tasks in Azure Batch:
+        python batch_workers.py
+
+Author: Hector Miras del Rio
+Date: September 2023
 """
+
 
 import datetime
 import os
