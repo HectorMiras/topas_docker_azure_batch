@@ -1,0 +1,10 @@
+{
+    "SIM_ID": "topas-simulation",
+    "POOL_NODE_COUNT": 2,
+    "POOL_VM_SIZE": "STANDARD_A1_v2",
+    "SIM_CONFIG_FILE": null,
+    "LOCAL_SIM_PATH": "/home/AzureBatch/example/example_simulation",
+    "RUN_SCRIPT": "main_run_script.sh",
+    "REDUCER_SCRIPT": "main_batch_reducer_script.sh",
+    "OUTPUT_FILE_PATTERNS": ["IsoSeedI125S16_*", "phsp_cylinder*"]
+}

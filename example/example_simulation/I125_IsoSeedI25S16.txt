@@ -1,0 +1,263 @@
+#                                                          #
+#                   I 125 - IsoSeed S16                    #
+#                                                          #
+#                                                          #
+#                Latest version - August 2022              #
+#                  Author: Hector Miras                    #
+#              Contact - hector.miras@gmail.com            #
+#       https://doi.org/                                   #
+#                                                          #
+
+
+##### MATERIAL DEFINITION #####
+
+svc:Ma/MatRadioactive/Components = 2 "Aluminum" "Oxygen"
+uvc:Ma/MatRadioactive/Fractions  = 2 0.5294 0.4706
+dc:Ma/MatRadioactive/Density     = 2.88 g/cm3
+
+##### SOURCE #####
+s:So/ActiveSource/Type                       = "Volumetric"
+s:So/ActiveSource/Component                  = "ActiveSourceGeometry"
+sc:So/ActiveSource/ActiveMaterial            = "MatRadioactive"
+s:So/ActiveSource/BeamParticle               = "gamma"
+b:So/ActiveSource/RecursivelyIncludeChildren = "T"
+i:So/ActiveSource/MaxNumberOfPointsToSample  = 1000000000
+s:So/ActiveSource/BeamEnergySpectrumType     = "Discrete"
+#ic:So/ActiveSource/NumberOfHistoriesInRun    = 10000000
+i:Ts/ShowHistoryCountAtInterval = 10000
+
+##### SPECTRUM ######
+dv:So/ActiveSource/BeamEnergySpectrumValues = 7 3.77 27.202 27.472 30.944 30.995 31.704 35.3922 keV
+uv:So/ActiveSource/BeamEnergySpectrumWeightsUnscaled = 7 0.149 0.401 0.740 0.0683 0.132 0.0380 0.0668
+uv:So/ActiveSource/BeamEnergySpectrumWeights = 0.6269199 * So/ActiveSource/BeamEnergySpectrumWeightsUnscaled
+
+##### SOURCE GEOMETRY #####
+
+s:Ge/ActiveSourceGeometry/Type              = "Group"
+s:Ge/ActiveSourceGeometry/Parent            = "Seed"
+b:Ge/ActiveSourceGeometry/IsParallel        = "True"
+s:Ge/ActiveSourceGeometry/ParallelWorldName = "ActiveSourceWorld"
+
+#====================
+#Radioactive cylinder
+#====================
+
+s:Ge/RadioactiveCylinder/Type         = "TsCylinder"
+s:Ge/RadioactiveCylinder/Parent       = "ActiveSourceGeometry"
+sc:Ge/RadioactiveCylinder/Material     = "MatRadioactive"
+dc:Ge/RadioactiveCylinder/RMin         = 0.11 mm
+dc:Ge/RadioactiveCylinder/RMax         = 0.30 mm
+d:Ge/RadioactiveCylinder/SPhi         = 0. deg
+d:Ge/RadioactiveCylinder/DPhi         = 360. deg
+dc:Ge/RadioactiveCylinder/HL           = 1.75 mm
+d:Ge/RadioactiveCylinder/TransX       = 0. mm
+d:Ge/RadioactiveCylinder/TransY       = 0. mm
+d:Ge/RadioactiveCylinder/TransZ       = 0. mm
+d:Ge/RadioactiveCylinder/RotX         = 0. deg
+d:Ge/RadioactiveCylinder/RotY         = 0. deg
+d:Ge/RadioactiveCylinder/RotZ         = 0. deg
+sc:Ge/RadioactiveCylinder/DrawingStyle = "FullWireFrame"
+s:Ge/RadioactiveCylinder/Color        = "yellow"
+b:Ge/RadioactiveCylinder/IsParallel   = "T"
+s:Ge/RadioactiveCylinder/ParallelWorldName = "ActiveSourceWorld"
+
+#====================
+# Gold cylinder
+#====================
+
+s:Ge/GoldCylinder/Type         = "TsCylinder"
+s:Ge/GoldCylinder/Parent       = "ActiveSourceGeometry"
+sc:Ge/GoldCylinder/Material     = "G4_Au"
+d:Ge/GoldCylinder/RMin         = 0. mm
+dc:Ge/GoldCylinder/RMax         = 0.085 mm
+d:Ge/GoldCylinder/SPhi         = 0. deg
+d:Ge/GoldCylinder/DPhi         = 360. deg
+dc:Ge/GoldCylinder/HL           = 1.75 mm
+d:Ge/GoldCylinder/TransX       = 0. mm
+d:Ge/GoldCylinder/TransY       = 0. mm
+d:Ge/GoldCylinder/TransZ       = 0. mm
+d:Ge/GoldCylinder/RotX         = 0. deg
+d:Ge/GoldCylinder/RotY         = 0. deg
+d:Ge/GoldCylinder/RotZ         = 0. deg
+sc:Ge/GoldCylinder/DrawingStyle = "FullWireFrame"
+s:Ge/GoldCylinder/Color        = "grey"
+b:Ge/GoldCylinder/IsParallel   = "T"
+s:Ge/GoldCylinder/ParallelWorldName = "ActiveSourceWorld"
+
+##### FILLING GEOMETRY #####
+
+s:Ge/FillingGeometry/Type              = "Group"
+s:Ge/FillingGeometry/Parent            = "Seed"
+b:Ge/FillingGeometry/IsParallel        = "True"
+s:Ge/FillingGeometry/ParallelWorldName = "FillingWorld"
+
+#====================
+#Dry Air cylinder
+#====================
+
+s:Ge/DryAirCylinder/Type         = "TsCylinder"
+s:Ge/DryAirCylinder/Parent       = "FillingGeometry"
+sc:Ge/DryAirCylinder/Material     = "G4_AIR"
+d:Ge/DryAirCylinder/RMin         = 0. mm
+dc:Ge/DryAirCylinder/RMax         = 0.35 mm
+d:Ge/DryAirCylinder/SPhi         = 0. deg
+d:Ge/DryAirCylinder/DPhi         = 360. deg
+dc:Ge/DryAirCylinder/HL           = 1.7682 mm
+d:Ge/DryAirCylinder/TransX       = 0. mm
+d:Ge/DryAirCylinder/TransY       = 0. mm
+d:Ge/DryAirCylinder/TransZ       = 0. mm
+d:Ge/DryAirCylinder/RotX         = 0. deg
+d:Ge/DryAirCylinder/RotY         = 0. deg
+d:Ge/DryAirCylinder/RotZ         = 0. deg
+sc:Ge/DryAirCylinder/DrawingStyle = "FullWireFrame"
+s:Ge/DryAirCylinder/Color        = "white"
+b:Ge/DryAirCylinder/IsParallel   = "True"
+s:Ge/DryAirCylinder/ParallelWorldName = "FillingWorld"
+
+#===============================
+#Left cap of air 
+#===============================
+
+s:Ge/AirLeftCap/Type              = "G4Ellipsoid"
+s:Ge/AirLeftCap/Parent            = "FillingGeometry"
+sc:Ge/AirLeftCap/Material          = "G4_AIR"
+d:Ge/AirLeftCap/TransX            = 0 mm
+d:Ge/AirLeftCap/TransY            = 0 mm
+dc:Ge/AirLeftCap/TransZ            = 0.951 mm
+d:Ge/AirLeftCap/RotX              = 0 deg
+d:Ge/AirLeftCap/RotY              = 0 deg
+d:Ge/AirLeftCap/RotZ              = 0 deg
+dc:Ge/AirLeftCap/HLX               = 0.889 mm
+dc:Ge/AirLeftCap/HLY               = 0.889 mm
+dc:Ge/AirLeftCap/HLZ               = 0.889 mm
+dc:Ge/AirLeftCap/ZBottom           = 0.8172 mm
+#d:Ge/AirLeftCap/ZTop              = 40 mm
+s:Ge/AirLeftCap/Color             = "white"
+sc:Ge/AirLeftCap/DrawingStyle      = "FullWireFrame"
+s:Ge/AirLeftCap/ParallelWorldName = "FillingWorld"
+b:Ge/AirLeftCap/IsParallel   = "True"
+
+#================================
+#Right cap of air
+#================================
+
+s:Ge/AirRightCap/Type              = "G4Ellipsoid"
+s:Ge/AirRightCap/Parent            = "FillingGeometry"
+sc:Ge/AirRightCap/Material          = "G4_AIR"
+d:Ge/AirRightCap/TransX            = 0 mm
+d:Ge/AirRightCap/TransY            = 0 mm
+dc:Ge/AirRightCap/TransZ            = -0.951 mm
+d:Ge/AirRightCap/RotX              = 0 deg
+d:Ge/AirRightCap/RotY              = 0 deg
+d:Ge/AirRightCap/RotZ              = 0 deg
+dc:Ge/AirRightCap/HLX               = 0.889 mm
+dc:Ge/AirRightCap/HLY               = 0.889 mm
+dc:Ge/AirRightCap/HLZ               = 0.889 mm
+#d:Ge/AirRightCap/ZBottom           = 0.8172 mm
+dc:Ge/AirRightCap/ZTop              = -0.8172 mm
+s:Ge/AirRightCap/Color             = "white"
+sc:Ge/AirRightCap/DrawingStyle      = "FullWireFrame"
+s:Ge/AirRightCap/ParallelWorldName = "FillingWorld"
+b:Ge/AirRightCap/IsParallel   = "True"
+
+##### SHIELDING #####
+
+s:Ge/ShieldingGeo/Type              = "Group"
+s:Ge/ShieldingGeo/Parent            = "Seed"
+b:Ge/ShieldingGeo/IsParallel        = "True"
+s:Ge/ShieldingGeo/ParallelWorldName = "ShieldingWorld"
+
+#=====================
+#Cylinder of Titanium
+#=====================
+
+s:Ge/TitaniumCylinder/Type         = "TsCylinder"
+s:Ge/TitaniumCylinder/Parent       = "ShieldingGeo"
+sc:Ge/TitaniumCylinder/Material     = "Titanium"
+d:Ge/TitaniumCylinder/RMin         = 0. mm
+dc:Ge/TitaniumCylinder/RMax         = 0.40 mm
+dc:Ge/TitaniumCylinder/SPhi         = 180. deg
+dc:Ge/TitaniumCylinder/DPhi         = 360. deg
+dc:Ge/TitaniumCylinder/HL           = 1.88 mm
+d:Ge/TitaniumCylinder/TransX       = 0. mm
+d:Ge/TitaniumCylinder/TransY       = 0. mm
+d:Ge/TitaniumCylinder/TransZ       = 0. mm
+d:Ge/TitaniumCylinder/RotX         = 0. deg
+d:Ge/TitaniumCylinder/RotY         = 0. deg
+d:Ge/TitaniumCylinder/RotZ         = 0. deg
+s:Ge/TitaniumCylinder/Color        = "blue"
+sc:Ge/TitaniumCylinder/DrawingStyle = "FullWireFrame"
+b:Ge/TitaniumCylinder/IsParallel   = "True"
+s:Ge/TitaniumCylinder/ParallelWorldName = "ShieldingWorld"
+
+#===============================
+#Left half-sphere of Titanium 
+#===============================
+
+s:Ge/TitaniumLeftCap/Type         = "TsSphere"
+s:Ge/TitaniumLeftCap/Parent       = "ShieldingGeo"
+s:Ge/TitaniumLeftCap/Material     = "Titanium"
+d:Ge/TitaniumLeftCap/RMin         = 0 mm
+dc:Ge/TitaniumLeftCap/RMax         = 0.4 mm
+dc:Ge/TitaniumLeftCap/SPhi         = 0. deg
+dc:Ge/TitaniumLeftCap/DPhi         = 360. deg
+dc:Ge/TitaniumLeftCap/STheta       = 0. deg
+dc:Ge/TitaniumLeftCap/DTheta       = 90. deg
+d:Ge/TitaniumLeftCap/TransX       = 0. mm
+d:Ge/TitaniumLeftCap/TransY       = 0. mm
+dc:Ge/TitaniumLeftCap/TransZ       = 1.88 mm
+d:Ge/TitaniumLeftCap/RotX         = 0. deg
+d:Ge/TitaniumLeftCap/RotY         = 0. deg
+d:Ge/TitaniumLeftCap/RotZ         = 0. deg
+sc:Ge/TitaniumLeftCap/DrawingStyle = "FullWireFrame"
+s:Ge/TitaniumLeftCap/Color        = "blue"
+b:Ge/TitaniumLeftCap/IsParallel   = "True"
+s:Ge/TitaniumLeftCap/ParallelWorldName = "ShieldingWorld"
+
+#================================
+#Right half-sphere of titanium
+#================================
+
+s:Ge/TitaniumRightCap/Type         = "TsSphere"
+s:Ge/TitaniumRightCap/Parent       = "ShieldingGeo"
+s:Ge/TitaniumRightCap/Material     = "Titanium"
+d:Ge/TitaniumRightCap/RMin         = 0 mm
+dc:Ge/TitaniumRightCap/RMax         = 0.4 mm
+dc:Ge/TitaniumRightCap/SPhi         = 0. deg
+dc:Ge/TitaniumRightCap/DPhi         = 360. deg
+dc:Ge/TitaniumRightCap/STheta       = 0. deg
+dc:Ge/TitaniumRightCap/DTheta       = 90. deg
+d:Ge/TitaniumRightCap/TransX       = 0. mm
+d:Ge/TitaniumRightCap/TransY       = 0. mm
+dc:Ge/TitaniumRightCap/TransZ       = -1.88 mm
+dc:Ge/TitaniumRightCap/RotX         = 180. deg
+d:Ge/TitaniumRightCap/RotY         = 0. deg
+d:Ge/TitaniumRightCap/RotZ         = 0. deg
+sc:Ge/TitaniumRightCap/DrawingStyle = "FullWireFrame"
+s:Ge/TitaniumRightCap/Color        = "blue"
+b:Ge/TitaniumRightCap/IsParallel   = "True"
+s:Ge/TitaniumRightCap/ParallelWorldName = "ShieldingWorld"
+
+
+##### SEED #####
+
+s:Ge/Seed/Type              = "Group"
+s:Ge/Seed/Parent            = "World"
+#b:Ge/Seed/IsParallel        = "True"
+#s:Ge/Seed/ParallelWorldName        = "SeedWorld"
+
+
+s:Ge/TitaniumCylinder/AssignToRegionNamed      = "seedregion"
+s:Ge/TitaniumRightCap/AssignToRegionNamed      = "seedregion"
+s:Ge/TitaniumLeftCap/AssignToRegionNamed      = "seedregion"
+s:Ge/AirRightCap/AssignToRegionNamed      = "seedregion"
+s:Ge/AirLeftCap/AssignToRegionNamed      = "seedregion"
+s:Ge/DryAirCylinder/AssignToRegionNamed      = "seedregion"
+s:Ge/GoldCylinder/AssignToRegionNamed      = "seedregion"
+s:Ge/RadioactiveCylinder/AssignToRegionNamed      = "seedregion"
+s:Ge/Seed/AssignToRegionNamed      = "seedregion"
+
+
+
+
+

@@ -1,0 +1,82 @@
+############################################################
+#                                                          #
+#                   World, Scorer, Physics,...             #
+#                                                          #
+############################################################
+
+##### Import one of the following LDR sources ##### 
+includeFile = I125_IsoSeedI25S16.txt
+
+##### Water phantom of 20 cm side #####
+d:Ge/World/HLX = 10 cm
+d:Ge/World/HLY = 10 cm
+d:Ge/World/HLZ = 10 cm
+s:Ge/World/Material = "G4_WATER"
+b:Ge/World/Invisible    = "F"
+
+#### Binned cylindric scoring volume ####
+s:Ge/ScoringCyl/Type       = "TsCylinder"
+s:Ge/ScoringCyl/Parent     = "World"
+b:Ge/ScoringCyl/IsParallel     = "True"
+s:Ge/ScoringCyl/ParallelWorldName   = "ScoringWorld"
+b:Ge/ScoringCyl/Invisible    = "True"
+d:Ge/ScoringCyl/HL                 = 0.025 cm
+d:Ge/ScoringCyl/RMin                 = 0.025 cm
+d:Ge/ScoringCyl/RMax                 = 2.025 cm
+i:Ge/ScoringCyl/RBins                 = 40
+
+svc:Ph/Default/LayeredMassGeometryWorlds =  3 "ShieldingWorld" "FillingWorld" "ActiveSourceWorld"
+
+#### Scorer ####
+s:Sc/DoseAtPhantom1/Quantity = "DoseToMedium"
+sv:Sc/DoseAtPhantom1/Report = 7 "Sum" "Mean" "Count_in_bin" "Second_Moment" "Variance" "Standard_Deviation" "Histories"  # options: "Sum" "Mean" "Count_in_bin" "Second_Moment" "Variance" "Standard_Deviation" "Min" "Max" "Histories"
+s:Sc/DoseAtPhantom1/Component = "ScoringCyl"
+s:Sc/DoseAtPhantom1/OutputFile = "IsoSeedI25S16_ScoringCyl"
+s:Sc/DoseAtPhantom1/OutputType = "csv"
+s:Sc/DoseAtPhantom1/IfOutputFileAlreadyExists = "Overwrite" # "Exit", "Overwrite" or "Increment"
+b:Sc/DoseAtPhantom1/OutputToConsole = "F"
+
+s:Sc/PhaseSpaceScorer/Quantity = "PhaseSpace"
+s:Sc/PhaseSpaceScorer/OutputType = "ASCII" # "Binary", "ASCII," "Limited" or "ROOT"
+s:Sc/PhaseSpaceScorer/Surface = "ScoringCyl/AnySurface"
+s:Sc/PhaseSpaceScorer/OutputFile = "phsp_cylinder"
+s:Sc/PhaseSpaceScorer/IfOutputFileAlreadyExists = "Overwrite" # "Exit", "Overwrite" or "Increment"
+#b:Sc/PhaseSpaceScorer/OutputToConsole = "F"
+
+
+##### Physics #####
+sv:Ph/Default/Modules = 1 "g4em-livermore"
+#d:Ph/Default/CutForElectron = 0.001 mm
+d:Ph/Default/CutForGamma = 0.01 mm 
+b:Ph/Default/Fluorescence = "F"
+b:Ph/Default/Auger = "F"
+b:Ph/Default/PIXE = "F"
+b:Ph/Default/DeexcitationIgnoreCut = "F"
+b:Ph/ListProcesses = "False"
+d:Ph/Default/LowestElectronEnergy = 100 keV
+
+
+
+##### Graphics #####
+b:Gr/Enable          = "F"
+b:Ts/PauseBeforeQuit = "F"
+
+s:Gr/View/Type        = "OpenGL"
+u:Gr/View/Zoom        = 50.
+d:Gr/View/Phi         = 20 deg
+d:Gr/View/Theta       = 90 deg
+b:Gr/View/IncludeAxes = "F"
+d:Gr/View/AxesSize    = 5 mm
+
+
+Ts/UseQt = "F"
+b:Ts/ShowCPUTime = "True"
+i:Ts/RunVerbosity = 0 # Set to larger integer to see details of run. Maximum is 2
+i:Ts/EventVerbosity = 0 # Set to larger integer to see details of event. Maximum is 5
+i:Ts/TrackingVerbosity = 0 # Set to larger integer to see details of tracking
+i:Ts/SequenceVerbosity = 0 # Set to larger integer to see details of TOPAS run
+Tf/Verbosity = 0
+
+i:Ts/NumberOfThreads = 1 # defaults to 1
+i:Ts/Seed = 12419
+ic:So/ActiveSource/NumberOfHistoriesInRun    = 20000
