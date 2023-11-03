@@ -91,7 +91,7 @@ This script does the following:
 
 After all tasks are completed, you can aggregate or post-process the results using the command 
 ```
-python batch_data_reducer.py /path_to_simconfig/simconfig.json`
+python batch_data_reducer.py /path_to_simconfig/simconfig.json
 ```
 
 This script:
