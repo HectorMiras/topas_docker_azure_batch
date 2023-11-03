@@ -126,6 +126,64 @@ Once the reducer has completed its tasks, it performs the following operations:
 
 4. **Delete the Batch Job and Pool**: As with the worker tasks, you can choose to delete the records of the reducer tasks and the VMs pool in the Azure Batch service to prevent further charges.
 
+
+## Example Usage
+
+The `example` directory contains the necessary files to test the application:
+
+1. Dockerfiles for setting up the worker and reducer containers.
+
+2. A `simulation` subdirectory with TOPAS parameter files to run a simple simulation.
+
+3. A pre-configured `simconfig.json` file for running the simulation in the `example_simulation` directory.
+
+To run the example, please follow these steps:
+
+1. Build the Docker container images using the provided Dockerfiles and publish them to a container registry such as Docker Hub.
+
+2. Update the `simconfig.json` file, replacing `LOCAL_SIM_PATH` with the absolute path to your `AzureBatch/example/example_simulation` directory.
+
+3. Modify the `appconfig.json` file with your specific Azure Batch and Azure Storage details, Docker image references, Git repository information, etc.
+
+4. Place the updated `appconfig.json` file in the directory that contains the `batch_simulation_runner.py` script.
+
+5. Open a shell terminal, navigate to the directory containing the batch Python scripts, and execute the following command:
+   ```
+   python batch_simulation_runner.py ./example/simconfig.json
+   ```
+
+The `example` directory contains the necessary files to test the application:
+
+1. Dockerfiles for setting up the worker and reducer containers.
+
+2. A `simulation` subdirectory with TOPAS parameter files to run a simple simulation.
+
+3. A pre-configured `simconfig.json` file for running the simulation in the `example_simulation` directory.
+
+To run the example, please follow these steps:
+
+1. Build the Docker container images using the provided Dockerfiles and publish them to a container registry such as Docker Hub.
+
+2. Update the `simconfig.json` file, replacing `LOCAL_SIM_PATH` with the absolute path to your `AzureBatch/example/example_simulation` directory.
+
+3. Modify the `appconfig.json` file with your specific Azure Batch and Azure Storage details, Docker image references, Git repository information, etc.
+
+4. Place the updated `appconfig.json` file in the directory that contains the `batch_simulation_runner.py` script.
+
+5. Open a shell terminal, navigate to the directory containing the batch Python scripts, and execute the following command:
+   ```
+   python batch_simulation_runner.py ./example/simconfig.json
+   ```
+Respond 'yes' when prompted to download files. A new subdirectory will be created at `.../example/example_simulation/nodes_output` containing the output files from each compute node.
+
+To test the reducer script, create Python scripts to process the node outputs and push them to a GitHub repository. Then, execute the following command to run the reducer:
+```
+python batch_data_reducer.py ./example/simconfig.json
+```
+
+When answering 'yes' to the download files prompt, a new directory `.../example/example_simulation/nodes_output/results` will appear with the consolidated result files.
+
+
 ## Contribution
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

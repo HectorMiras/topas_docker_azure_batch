@@ -143,13 +143,13 @@ if __name__ == '__main__':
                    job_id=JOB_ID_WORKERS,
                    pool_id=POOL_ID_WORKERS)
 
-        git_clone_command = f'git clone https://{appconfig.GIT_TOKEN}@github.com/{appconfig.GIT_USER}/{appconfig.GIT_REPO}.git'
+        # git_clone_command = f'git clone https://{appconfig.GIT_TOKEN}@github.com/{appconfig.GIT_USER}/{appconfig.GIT_REPO}.git'
         COMMAND_TEMPLATE = (
             "/bin/bash -c \"current_dir=$(pwd) && "
             "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && "
-            "{git_command} && "
             "ls -la && $current_dir/{run_script}\"")
-        command = COMMAND_TEMPLATE.format(git_command=git_clone_command, run_script=simconfig.RUN_SCRIPT)
+        #command = COMMAND_TEMPLATE.format(git_command=git_clone_command, run_script=simconfig.RUN_SCRIPT)
+        command = COMMAND_TEMPLATE.format(run_script=simconfig.RUN_SCRIPT)
         add_tasks(batch_service_client=batch_client,
                   job_id=JOB_ID_WORKERS,
                   total_nodes=simconfig.POOL_NODE_COUNT,
