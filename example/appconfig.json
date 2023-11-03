@@ -1,0 +1,15 @@
+{
+  "BATCH_ACCOUNT_NAME": "batch_account_name",
+  "BATCH_ACCOUNT_KEY": "batch_account_key",
+  "BATCH_ACCOUNT_URL": "https://batch_account_url.batch.azure.com",
+  "STORAGE_ACCOUNT_NAME": "storage_account_name",
+  "STORAGE_ACCOUNT_KEY": "storage_account_name",
+  "STORAGE_ACCOUNT_DOMAIN": "blob.core.windows.net",
+  "WORKER_DOCKER_IMAGE": "user/topas_container_image:latest",
+  "REDUCER_DOCKER_IMAGE": "user/pyreducer_container:latest",
+  "DOCKER_USER": "docker_user_name",
+  "DOCKER_TOKEN": "docker_token",
+  "GIT_USER": "git_user",
+  "GIT_TOKEN": "git_token",
+  "GIT_REPO": "git_repository_name"
+}

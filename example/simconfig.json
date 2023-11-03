@@ -1,9 +1,8 @@
 {
-    "SIM_ID": "topas-simulation-example2",
+    "SIM_ID": "topas-simulation-example",
     "POOL_NODE_COUNT": 2,
     "POOL_VM_SIZE": "STANDARD_D1_v2",
-    "SIM_CONFIG_FILE": null,
-    "LOCAL_SIM_PATH": "/home/hector/AzureBatch/example/example_simulation",
+    "LOCAL_SIM_PATH": "/path/to/AzureBatch/example/example_simulation",
     "RUN_SCRIPT": "main_run_script.sh",
     "REDUCER_SCRIPT": "main_batch_reducer_script.sh",
     "OUTPUT_FILE_PATTERNS": ["IsoSeedI125S16_*", "phsp_cylinder*"]
