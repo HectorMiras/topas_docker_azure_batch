@@ -75,7 +75,11 @@ The reducer code, which should be a Python script or a set of Python scripts, is
 
 ### Distributing Tasks to Workers
 
-Run `python batch_simulation_runner.py /path_to_simconfig/simconfig.json` to distribute tasks among multiple workers:
+Run 
+```
+python batch_simulation_runner.py /path_to_simconfig/simconfig.json
+```
+to distribute tasks among multiple workers:
 
 This script does the following:
 
@@ -86,8 +90,9 @@ This script does the following:
 ### Reducing or Post-Processing the Results
 
 After all tasks are completed, you can aggregate or post-process the results using the script 
-`python batch_data_reducer.py /path_to_simconfig/simconfig.json`
-
+```
+python batch_data_reducer.py /path_to_simconfig/simconfig.json`
+```
 
 This script:
 
@@ -104,9 +109,10 @@ At the conclusion of the worker tasks, the script offers options to perform the 
 
 1. **Delete the Azure Storage Container**: After the tasks, you'll have the option to delete the Azure Storage container where simulation data and outputs were temporarily stored.
 
-2. **Delete the Batch Job**: If you no longer need the records of the completed worker tasks, you can opt to delete the corresponding job in the Azure Batch service.
+2. **Download Simulation Results**: You'll be prompted if you wish to download the output simulation files from the computing nodes to your local machine.
 
-3. **Delete the Pool**: The worker VMs were created in an Azure Batch pool. Once the tasks are completed and you don't plan to submit more, you can delete the pool to stop incurring charges.
+3. **Delete the Batch Job and Pool**: Once the tasks are completed, and you don't plan to submit more, you can delete the pool and the records of the tasks from Azure Batch service to stop incurring charges.
+
 
 ### Reducer
 
@@ -118,9 +124,8 @@ Once the reducer has completed its tasks, it performs the following operations:
 
 3. **Delete the Azure Storage Container**: After downloading the results, or if you choose not to, you'll have the option to delete the Azure Storage container where the reducer outputs were stored.
 
-4. **Delete the Batch Job**: As with the worker tasks, you can choose to delete the records of the reducer tasks in the Azure Batch service.
+4. **Delete the Batch Job and Pool**: As with the worker tasks, you can choose to delete the records of the reducer tasks and the VMs pool in the Azure Batch service to prevent further charges.
 
-5. **Delete the Pool**: If you don't plan to use the reducer VM for other tasks, you can delete its pool in Azure Batch to prevent further charges.
 ## Contribution
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
