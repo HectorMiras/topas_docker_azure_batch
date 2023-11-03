@@ -75,7 +75,7 @@ The reducer code, which should be a Python script or a set of Python scripts, is
 
 ### Distributing Tasks to Workers
 
-Run the `batch_simulation_runner.py` to distribute tasks among multiple workers:
+Run `python batch_simulation_runner.py /path_to_simconfig/simconfig.json` to distribute tasks among multiple workers:
 
 This script does the following:
 
@@ -85,7 +85,8 @@ This script does the following:
 
 ### Reducing or Post-Processing the Results
 
-After all tasks are completed, you can aggregate or post-process the results using the script `batch_data_reducer.py`
+After all tasks are completed, you can aggregate or post-process the results using the script 
+`python batch_data_reducer.py /path_to_simconfig/simconfig.json`
 
 
 This script:

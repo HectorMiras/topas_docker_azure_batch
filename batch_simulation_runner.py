@@ -31,6 +31,7 @@ Date: September 2023
 
 
 import datetime
+import time
 import os
 import shutil
 import sys
@@ -43,7 +44,7 @@ from azure.storage.blob import BlobServiceClient
 
 from auxiliar_methods import query_yes_no, ConfigClass
 from azure_batch_methods import generate_sas_for_container, upload_file_to_container, create_pool, create_job, \
-    add_tasks, wait_for_tasks_to_complete, print_task_output, print_batch_exception
+    add_tasks, wait_for_tasks_to_complete, print_task_output, print_batch_exception, download_output_files
 
 
 if __name__ == '__main__':
@@ -53,7 +54,10 @@ if __name__ == '__main__':
     print()
 
     appconfig = ConfigClass('appconfig.json')
-    simconfig = ConfigClass('simconfig.json')
+    #simconfig = ConfigClass('simconfig.json')
+    # sim_config_file = sys.argv[1]
+    sim_config_file = "./example/simconfig.json"
+    simconfig = ConfigClass(sim_config_file)
 
     # Create the blob client, for use in obtaining references to
     # blob storage containers and uploading files to containers.
@@ -72,11 +76,18 @@ if __name__ == '__main__':
 
     # Use the blob client to create the containers in Azure Storage if they
     # don't yet exist.
-    input_container_name = STORAGE_CONTAINER_NAME  # pylint: disable=invalid-name
-    try:
-        blob_service_client.create_container(input_container_name)
-    except ResourceExistsError:
-        pass
+    retry_count = 0
+    while retry_count < 5:
+        input_container_name = STORAGE_CONTAINER_NAME  # pylint: disable=invalid-name
+        try:
+            blob_service_client.create_container(input_container_name)
+        except ResourceExistsError:
+            print(f"Container {input_container_name} already exists")
+            break
+        except Exception as e:
+            print(f"Failed to create container: {e}")
+            retry_count += 1
+            time.sleep(2 ** retry_count)  # exponential backoff
 
     # Generate sas token for the container
     container_sas_token = generate_sas_for_container(STORAGE_CONTAINER_NAME,
@@ -94,7 +105,7 @@ if __name__ == '__main__':
     shutil.make_archive(output_zip_path, 'zip', directory_to_zip)
 
     # Upload and generate ResourceFiles
-    files_to_upload = [f"{output_zip_path}.zip", "simconfig.json"]
+    files_to_upload = [f"{output_zip_path}.zip", sim_config_file]
     resource_files = []
     for file in files_to_upload:
         resource_file = upload_file_to_container(
@@ -171,14 +182,19 @@ if __name__ == '__main__':
         raise
 
     finally:
+        # Download nodes simulation outputs?
+        if query_yes_no('Download simulation results:') == 'yes':
+            download_output_files(
+                appconfig=appconfig,
+                container_name=STORAGE_CONTAINER_NAME,
+                local_dir=f'{simconfig.LOCAL_SIM_PATH}'
+            )
         # Clean up storage resources
-        if query_yes_no('Delete container?') == 'yes':
+        if query_yes_no('Delete simulation container from storage?') == 'yes':
             print(f'Deleting container [{input_container_name}]...')
             blob_service_client.delete_container(input_container_name)
 
         # Clean up Batch resources (if the user so chooses).
-        if query_yes_no('Delete job?') == 'yes':
-            batch_client.job.delete(JOB_ID_WORKERS)
-
-        if query_yes_no('Delete pool?') == 'yes':
+        if query_yes_no('Delete job/pool?') == 'yes':
             batch_client.pool.delete(POOL_ID_WORKERS)
+            batch_client.job.delete(JOB_ID_WORKERS)

@@ -32,6 +32,7 @@ Date: [Script Creation/Last Modified Date]
 
 
 import datetime
+import sys
 
 import azure.batch.models as batchmodels
 from azure.batch import BatchServiceClient
@@ -50,7 +51,10 @@ if __name__ == '__main__':
     print()
 
     appconfig = ConfigClass('appconfig.json')
-    simconfig = ConfigClass('simconfig.json')
+    # simconfig = ConfigClass('simconfig.json')
+    #sim_config_file = sys.argv[1]
+    sim_config_file = "./example/simconfig.json"
+    simconfig = ConfigClass(sim_config_file)
 
     # Create the blob client, for use in obtaining references to
     # blob storage containers and uploading files to containers.
@@ -75,7 +79,7 @@ if __name__ == '__main__':
                        "auxiliar_methods.py",
                        "azure_batch_methods.py",
                        "appconfig.json",
-                       "simconfig.json"]
+                       sim_config_file]
     resource_files = []
     for file in files_to_upload:
         resource_file = upload_file_to_container(
@@ -121,7 +125,9 @@ if __name__ == '__main__':
             "python download_files.py || (echo 'Failed to downloading files' && exit 1) &&"
             "{git_command} && "
             "ls -la && cd ./{git_repo} && "
-            "$current_dir/{git_repo}/{run_script} $current_dir/nodes_output && cd ..\"")
+            "chmod +rwx {run_script} &&"
+            "$current_dir/{git_repo}/{run_script} $current_dir/nodes_output $current_dir/simconfig.json "
+            "cd ..\"")
         command = COMMAND_TEMPLATE.format(
             git_command=git_clone_command,
             git_repo=appconfig.GIT_REPO,
@@ -159,26 +165,21 @@ if __name__ == '__main__':
         raise
 
     finally:
-        # Clean up storage resources
-        for file in files_to_upload:
-            delete_blob_from_container(
-                blob_storage_service_client=blob_service_client,
-                container_name=STORAGE_CONTAINER_NAME,
-                blob_name=file
-            )
+        # Download nodes simulation outputs?
         if query_yes_no('Download simulation results:') == 'yes':
             download_output_files(
                 appconfig=appconfig,
                 container_name=STORAGE_CONTAINER_NAME,
                 local_dir=f'{simconfig.LOCAL_SIM_PATH}'
             )
+        # Clean storage?
         if query_yes_no('Delete container?') == 'yes':
             print(f'Deleting reducer container [{STORAGE_CONTAINER_NAME}]...')
             blob_service_client.delete_container(STORAGE_CONTAINER_NAME)
 
         # Clean up Batch resources (if the user so chooses).
-        if query_yes_no('Delete reducer job?') == 'yes':
+        if query_yes_no('Delete job/pool?') == 'yes':
+            batch_client.pool.delete(POOL_ID_REDUCER)
             batch_client.job.delete(JOB_ID_REDUCER)
 
-        if query_yes_no('Delete reducer pool?') == 'yes':
-            batch_client.pool.delete(POOL_ID_REDUCER)
+

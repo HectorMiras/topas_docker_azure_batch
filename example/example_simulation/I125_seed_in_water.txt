@@ -31,7 +31,7 @@ svc:Ph/Default/LayeredMassGeometryWorlds =  3 "ShieldingWorld" "FillingWorld" "A
 s:Sc/DoseAtPhantom1/Quantity = "DoseToMedium"
 sv:Sc/DoseAtPhantom1/Report = 7 "Sum" "Mean" "Count_in_bin" "Second_Moment" "Variance" "Standard_Deviation" "Histories"  # options: "Sum" "Mean" "Count_in_bin" "Second_Moment" "Variance" "Standard_Deviation" "Min" "Max" "Histories"
 s:Sc/DoseAtPhantom1/Component = "ScoringCyl"
-s:Sc/DoseAtPhantom1/OutputFile = "IsoSeedI25S16_ScoringCyl"
+s:Sc/DoseAtPhantom1/OutputFile = "IsoSeedI125S16_ScoringCyl"
 s:Sc/DoseAtPhantom1/OutputType = "csv"
 s:Sc/DoseAtPhantom1/IfOutputFileAlreadyExists = "Overwrite" # "Exit", "Overwrite" or "Increment"
 b:Sc/DoseAtPhantom1/OutputToConsole = "F"
@@ -78,5 +78,5 @@ i:Ts/SequenceVerbosity = 0 # Set to larger integer to see details of TOPAS run
 Tf/Verbosity = 0
 
 i:Ts/NumberOfThreads = 1 # defaults to 1
-i:Ts/Seed = 12419
+i:Ts/Seed = 6649
 ic:So/ActiveSource/NumberOfHistoriesInRun    = 20000
