@@ -23,7 +23,7 @@ Description:
 
 Usage:
     Run this script directly to initiate the worker tasks in Azure Batch:
-        python batch_workers.py
+        python batch_simulation_runner.py /path/to/simconfig.json
 
 Author: Hector Miras del Rio
 Date: September 2023
@@ -55,8 +55,8 @@ if __name__ == '__main__':
 
     appconfig = ConfigClass('appconfig.json')
     #simconfig = ConfigClass('simconfig.json')
-    # sim_config_file = sys.argv[1]
-    sim_config_file = "./example/simconfig.json"
+    sim_config_file = sys.argv[1]
+    #sim_config_file = "./example/simconfig.json"
     simconfig = ConfigClass(sim_config_file)
 
     # Create the blob client, for use in obtaining references to

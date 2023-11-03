@@ -24,7 +24,7 @@ Description:
 
 Usage:
     Launch this script directly to begin the result aggregation and reduction process:
-        python batch_reducer_client.py
+        python batch_data_reducer.py /path/to/simconfig.json
 
 Author: [Your Name]
 Date: [Script Creation/Last Modified Date]
@@ -52,8 +52,8 @@ if __name__ == '__main__':
 
     appconfig = ConfigClass('appconfig.json')
     # simconfig = ConfigClass('simconfig.json')
-    #sim_config_file = sys.argv[1]
-    sim_config_file = "./example/simconfig.json"
+    sim_config_file = sys.argv[1]
+    #sim_config_file = "./example/simconfig.json"
     simconfig = ConfigClass(sim_config_file)
 
     # Create the blob client, for use in obtaining references to
