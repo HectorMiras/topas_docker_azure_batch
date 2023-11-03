@@ -280,7 +280,7 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
         task_type = "reducer"
 
     for i in range(1, total_nodes + 1):
-        # Construct the task command
+        # Add the node index to the task command as argument
         task_command = f'{command} {i}'
 
         print(f'task_command: {task_command}')
