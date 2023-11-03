@@ -79,7 +79,7 @@ Run
 ```
 python batch_simulation_runner.py /path_to_simconfig/simconfig.json
 ```
-to distribute tasks among multiple workers:
+to distribute tasks among multiple workers.
 
 This script does the following:
 
@@ -89,7 +89,7 @@ This script does the following:
 
 ### Reducing or Post-Processing the Results
 
-After all tasks are completed, you can aggregate or post-process the results using the script 
+After all tasks are completed, you can aggregate or post-process the results using the command 
 ```
 python batch_data_reducer.py /path_to_simconfig/simconfig.json`
 ```
