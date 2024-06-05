@@ -56,6 +56,7 @@ if __name__ == '__main__':
     appconfig = ConfigClass('appconfig.json')
     #simconfig = ConfigClass('simconfig.json')
     sim_config_file = sys.argv[1]
+    #sim_config_file = "/home/hector/mytopassimulations/MGHsimulations/TOPAS_CellsNPs/simconfig.json"
     #sim_config_file = "./example/simconfig.json"
     simconfig = ConfigClass(sim_config_file)
 
@@ -71,14 +72,14 @@ if __name__ == '__main__':
     # Define Job ID with the current date
     JOB_ID_WORKERS = f"{simconfig.SIM_ID}-workers-{CURRENT_DATE}"
     # Use job name as the name for the output container
-    STORAGE_CONTAINER_NAME = f"{simconfig.SIM_ID}"
+    STORAGE_CONTAINER_NAME = f"{simconfig.SIM_ID}".lower()
     POOL_ID_WORKERS = f'{simconfig.SIM_ID}-workers'
 
     # Use the blob client to create the containers in Azure Storage if they
     # don't yet exist.
     retry_count = 0
     while retry_count < 5:
-        input_container_name = STORAGE_CONTAINER_NAME  # pylint: disable=invalid-name
+        input_container_name = STORAGE_CONTAINER_NAME # pylint: disable=invalid-name
         try:
             blob_service_client.create_container(input_container_name)
         except ResourceExistsError:
