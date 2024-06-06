@@ -281,10 +281,15 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, simconfig: 
 
     if "reducer" in job_id:
         task_type = "reducer"
+        total_nodes=1
 
     for i in range(1, total_nodes + 1):
-        # Add the node index to the task command as argument
-        task_command = command_template.format(run_script=simconfig.RUN_SCRIPT, node_id=i)
+
+        if task_type=="workers":
+            # Add the node index to the task command as argument
+            task_command = command_template.format(run_script=simconfig.RUN_SCRIPT, node_id=i)
+        else:
+            task_command = command_template
 
         print(f'task_command: {task_command}')
         print(" ")

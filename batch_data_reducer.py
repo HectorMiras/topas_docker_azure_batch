@@ -133,14 +133,22 @@ if __name__ == '__main__':
             git_repo=appconfig.GIT_REPO,
             run_script=simconfig.REDUCER_SCRIPT)
 
+        #add_tasks(batch_service_client=batch_client,
+        #          job_id=JOB_ID_REDUCER,
+        #          total_nodes=1,
+        #          resource_files=resource_files,
+        #          container_url=container_url,
+        #          docker_image=appconfig.REDUCER_DOCKER_IMAGE,
+        #          command=command,
+        #          file_patterns=[simconfig.OUTPUT_FILE_PATTERNS])
+
         add_tasks(batch_service_client=batch_client,
                   job_id=JOB_ID_REDUCER,
-                  total_nodes=1,
+                  simconfig=simconfig,
                   resource_files=resource_files,
                   container_url=container_url,
                   docker_image=appconfig.REDUCER_DOCKER_IMAGE,
-                  command=command,
-                  file_patterns=[simconfig.OUTPUT_FILE_PATTERNS])
+                  command_template=command)
 
         # Pause execution until tasks reach Completed state.
         wait_for_tasks_to_complete(batch_client, JOB_ID_REDUCER, datetime.timedelta(minutes=30))
