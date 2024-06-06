@@ -256,20 +256,23 @@ def create_job(batch_service_client: BatchServiceClient, job_id: str, pool_id: s
     batch_service_client.job.add(job)
 
 
-def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes: int,
+def add_tasks(batch_service_client: BatchServiceClient, job_id: str, simconfig: ConfigClass,
               resource_files: list[ResourceFile], container_url: str, docker_image: str,
-              command: str, file_patterns: list[str]):
+              command_template: str):
     """
     Adds a task for each input file in the collection to the specified job.
 
+    :param command_template:
+    :param resource_files:
+    :param simconfig:
     :param container_url:
     :param docker_image:
-    :param resource_file:
-    :param total_nodes:
     :param batch_service_client: A Batch service client.
     :param str job_id: The ID of the job to which to add the tasks.
      created for each input file.
     """
+    total_nodes=simconfig.POOL_NODE_COUNT
+    file_patterns = simconfig.OUTPUT_FILE_PATTERNS
 
     # Get the task type: workers or reducer
     task_type = ""
@@ -281,7 +284,7 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, total_nodes
 
     for i in range(1, total_nodes + 1):
         # Add the node index to the task command as argument
-        task_command = f'{command} {i}'
+        task_command = command_template.format(run_script=simconfig.RUN_SCRIPT, node_id=i)
 
         print(f'task_command: {task_command}')
         print(" ")

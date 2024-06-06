@@ -148,17 +148,27 @@ if __name__ == '__main__':
         COMMAND_TEMPLATE = (
             "/bin/bash -c \"current_dir=$(pwd) && "
             "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && "
-            "ls -la && $current_dir/{run_script}\"")
+            "ls -la && $current_dir/{run_script} {node_id}\"")
+
         #command = COMMAND_TEMPLATE.format(git_command=git_clone_command, run_script=simconfig.RUN_SCRIPT)
-        command = COMMAND_TEMPLATE.format(run_script=simconfig.RUN_SCRIPT)
+
+        #add_tasks(batch_service_client=batch_client,
+        #          job_id=JOB_ID_WORKERS,
+        #          total_nodes=simconfig.POOL_NODE_COUNT,
+        #          resource_files=resource_files,
+        #          container_url=container_url,
+        #          docker_image=appconfig.WORKER_DOCKER_IMAGE,
+        #          command_template=COMMAND_TEMPLATE,
+        #          file_patterns=simconfig.OUTPUT_FILE_PATTERNS)
+
+        #command = COMMAND_TEMPLATE.format(run_script=simconfig.RUN_SCRIPT)
         add_tasks(batch_service_client=batch_client,
                   job_id=JOB_ID_WORKERS,
-                  total_nodes=simconfig.POOL_NODE_COUNT,
+                  simconfig=simconfig,
                   resource_files=resource_files,
                   container_url=container_url,
                   docker_image=appconfig.WORKER_DOCKER_IMAGE,
-                  command=command,
-                  file_patterns=simconfig.OUTPUT_FILE_PATTERNS)
+                  command_template=COMMAND_TEMPLATE)
 
         # Pause execution until tasks reach Completed state.
         wait_for_tasks_to_complete(batch_client, JOB_ID_WORKERS, datetime.timedelta(minutes=30))
