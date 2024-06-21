@@ -18,6 +18,8 @@ from azure.storage.blob import (
 from azure.core.exceptions import ResourceNotFoundError, HttpResponseError
 
 from auxiliar_methods import _read_stream_as_string, DEFAULT_ENCODING, ConfigClass
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
 
 
 def print_batch_exception(batch_exception: batchmodels.BatchErrorException):

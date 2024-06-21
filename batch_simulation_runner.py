@@ -45,6 +45,8 @@ from azure.storage.blob import BlobServiceClient
 from auxiliar_methods import query_yes_no, ConfigClass
 from azure_batch_methods import generate_sas_for_container, upload_file_to_container, create_pool, create_job, \
     add_tasks, wait_for_tasks_to_complete, print_task_output, print_batch_exception, download_output_files
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
 
 
 if __name__ == '__main__':
@@ -147,7 +149,7 @@ if __name__ == '__main__':
         # git_clone_command = f'git clone https://{appconfig.GIT_TOKEN}@github.com/{appconfig.GIT_USER}/{appconfig.GIT_REPO}.git'
         COMMAND_TEMPLATE = (
             "/bin/bash -c \"current_dir=$(pwd) && "
-            "unzip SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && "
+            "unzip -n SIM_DIR.zip || (echo 'Failed to unzip' && exit 1) && "
             "ls -la && $current_dir/{run_script} {node_id}\"")
 
         #command = COMMAND_TEMPLATE.format(git_command=git_clone_command, run_script=simconfig.RUN_SCRIPT)
