@@ -142,7 +142,7 @@ def delete_blob_from_container(blob_storage_service_client: BlobServiceClient,
         print(f"An unexpected error occurred: {e}")
 
 
-def download_output_files(appconfig: ConfigClass, container_name: str, local_dir: str):
+def download_output_files(appconfig: ConfigClass, container_name: str, local_dir: str, only_reduced=False):
     # Initialize BlobServiceClient
     blob_service_client = BlobServiceClient(
         account_url=f"https://{appconfig.STORAGE_ACCOUNT_NAME}.{appconfig.STORAGE_ACCOUNT_DOMAIN}/",
@@ -156,7 +156,11 @@ def download_output_files(appconfig: ConfigClass, container_name: str, local_dir
     container_client = blob_service_client.get_container_client(container_name)
 
     # List all blobs in the directory and download them one by one
-    blob_list = container_client.list_blobs(name_starts_with="nodes_output/")
+    if only_reduced:
+        blob_list = container_client.list_blobs(name_starts_with="nodes_output/results")
+    else:
+        blob_list = container_client.list_blobs(name_starts_with="nodes_output/")
+
     for blob in blob_list:
         blob_name = blob.name
         blob_dir, blob_file = os.path.split(blob_name)

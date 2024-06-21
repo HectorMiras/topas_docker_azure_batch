@@ -173,7 +173,7 @@ if __name__ == '__main__':
                   command_template=COMMAND_TEMPLATE)
 
         # Pause execution until tasks reach Completed state.
-        wait_for_tasks_to_complete(batch_client, JOB_ID_WORKERS, datetime.timedelta(minutes=30))
+        wait_for_tasks_to_complete(batch_client, JOB_ID_WORKERS, datetime.timedelta(minutes=60))
 
         print("  Success! All worker tasks reached the 'Completed' state within the "
               "specified timeout period.")
