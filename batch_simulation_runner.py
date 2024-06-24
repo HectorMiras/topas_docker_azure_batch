@@ -173,7 +173,7 @@ if __name__ == '__main__':
                   command_template=COMMAND_TEMPLATE)
 
         # Pause execution until tasks reach Completed state.
-        wait_for_tasks_to_complete(batch_client, JOB_ID_WORKERS, datetime.timedelta(minutes=60))
+        wait_for_tasks_to_complete(batch_client, JOB_ID_WORKERS, datetime.timedelta(minutes=120))
 
         print("  Success! All worker tasks reached the 'Completed' state within the "
               "specified timeout period.")
@@ -195,6 +195,12 @@ if __name__ == '__main__':
         raise
 
     finally:
+        
+        # Clean up Batch resources (if the user so chooses).
+        if query_yes_no('Delete job/pool?') == 'yes':
+            batch_client.pool.delete(POOL_ID_WORKERS)
+            batch_client.job.delete(JOB_ID_WORKERS)
+
         # Download nodes simulation outputs?
         if query_yes_no('Download simulation results:') == 'yes':
             download_output_files(
@@ -207,7 +213,4 @@ if __name__ == '__main__':
             print(f'Deleting container [{input_container_name}]...')
             blob_service_client.delete_container(input_container_name)
 
-        # Clean up Batch resources (if the user so chooses).
-        if query_yes_no('Delete job/pool?') == 'yes':
-            batch_client.pool.delete(POOL_ID_WORKERS)
-            batch_client.job.delete(JOB_ID_WORKERS)
+

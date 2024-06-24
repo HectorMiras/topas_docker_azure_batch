@@ -173,21 +173,24 @@ if __name__ == '__main__':
         raise
 
     finally:
+        # Clean up Batch resources (if the user so chooses).
+        if query_yes_no('Delete job/pool?') == 'yes':
+            batch_client.pool.delete(POOL_ID_REDUCER)
+            batch_client.job.delete(JOB_ID_REDUCER)
+            
         # Download nodes simulation outputs?
         if query_yes_no('Download simulation results:') == 'yes':
             download_output_files(
                 appconfig=appconfig,
                 container_name=STORAGE_CONTAINER_NAME,
-                local_dir=f'{simconfig.LOCAL_SIM_PATH}'
+                local_dir=f'{simconfig.LOCAL_SIM_PATH}',
+                only_reduced=True
             )
         # Clean storage?
         if query_yes_no('Delete container?') == 'yes':
             print(f'Deleting reducer container [{STORAGE_CONTAINER_NAME}]...')
             blob_service_client.delete_container(STORAGE_CONTAINER_NAME)
 
-        # Clean up Batch resources (if the user so chooses).
-        if query_yes_no('Delete job/pool?') == 'yes':
-            batch_client.pool.delete(POOL_ID_REDUCER)
-            batch_client.job.delete(JOB_ID_REDUCER)
+
 
 

@@ -278,6 +278,10 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, simconfig: 
      created for each input file.
     """
     total_nodes=simconfig.POOL_NODE_COUNT
+    starting_node=1
+    if hasattr(simconfig, 'STARTING_NODE'):
+        starting_node=simconfig.STARTING_NODE
+
     file_patterns = simconfig.OUTPUT_FILE_PATTERNS
 
     # Get the task type: workers or reducer
@@ -288,8 +292,9 @@ def add_tasks(batch_service_client: BatchServiceClient, job_id: str, simconfig: 
     if "reducer" in job_id:
         task_type = "reducer"
         total_nodes=1
+        starting_node=1
 
-    for i in range(1, total_nodes + 1):
+    for i in range(starting_node, total_nodes + starting_node):
 
         if task_type=="workers":
             # Add the node index to the task command as argument
